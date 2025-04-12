@@ -1,29 +1,79 @@
 
 
-# Contributing to SkillNet: Empowering Exams with Innovation
+# Contributing to Fortichain: Enhancing the security of blockchain-based projects. 
 
-Thank you for your interest in contributing to SkillNet! SkillNet is a cutting-edge platform designed to host secure and efficient online exams. Our backend is built with Node.js and utilizes modern technologies to deliver a seamless testing experience for educators and candidates.
+Thank you for your interest in contributing to Fortichain! 
+
+FortiChain is a decentralized platform designed to enhance the security of blockchain-based projects by streamlining vulnerability disclosure and bug bounty processes. By leveraging blockchain’s inherent transparency and trustlessness, FortiChain allows developers, security researchers, and validators to engage in a secure and automated ecosystem for identifying and rewarding the resolution of smart contract vulnerabilities.
 
 ## Project Overview
 
-**SkillNet** re-imagines online examinations by:
+**FortiChain** Enhancing the security of blockchain-based projects:
 
-- **Empowering Educators:** Offering robust tools for creating, scheduling, and managing exams.
+- **Smart Contract Developers/Project Owners**: Looking for an unbiased mechanism to audit and secure their code.
+- **Security Researchers/Bug Hunters**: Seeking transparent and reliable platforms to report vulnerabilities and earn rewards.
+- **Community Validators/Reviewers**: Interested in contributing to security oversight and earning reputation or token-based incentives.
+- **Blockchain Ecosystem Participants**: Including organizations and individuals who value transparency and security in decentralized applications.
 
-- **Enhancing Candidate Experience:** Delivering a user-friendly and secure testing environment.
+## Key Features & Functional Requirements
 
-- **Ensuring Exam Integrity:** Incorporating advanced proctoring solutions and real-time analytics for fair assessments.
+### 1 Project Registration & Management
 
-### Features
-- Exam creation and scheduling tools
+**Feature:** On-chain registration for smart contracts.
 
-- Secure, real-time exam monitoring and proctoring
+**Requirements:**
+- Ability for project owners to submit smart contract details (e.g., code repository links, deployment addresses).
+- Versioning and audit trail for any changes to the registered contract.
+- Verification process to validate project ownership (e.g., cryptographic signatures).
 
-- Comprehensive performance analytics
+---
 
-- Customizable exam templates
+### 2 Vulnerability Submission & Reporting
 
-- Integrated communication channels
+**Feature:** Secure submission of vulnerability reports.
+
+**Requirements:**
+- Interface for security researchers to confidentially submit vulnerability details.
+- Option to attach proof-of-concept files, screenshots, or documentation.
+- Timestamping and immutable record creation on-chain.
+- Option for researchers to choose public disclosure or private reporting (with potential delayed public reveal upon resolution).
+
+---
+
+### 3 Decentralized Review & Verification
+
+**Feature:** Community-driven validation of submitted vulnerabilities.
+
+**Requirements:**
+- Voting mechanism where pre-approved validators/reviewers can assess the validity of a vulnerability.
+- Reputation system to score reviewers based on historical accuracy and participation.
+- Smart contract–based arbitration that triggers once consensus is reached.
+- Incentives (tokens) for accurate reviews and penalties for fraudulent claims.
+
+---
+
+### 4 Automated Bounty Management
+
+**Feature:** Smart contract automation for bounty escrow and payout.
+
+**Requirements:**
+- Escrow system where project owners deposit bounty funds in tokens.
+- Smart contract logic to release funds automatically upon successful vulnerability validation.
+- Provisions for partial payouts in cases of multi-stage vulnerabilities.
+- Audit trail for every transaction ensuring transparency.
+
+---
+
+### 5 Token & Reputation Incentives
+
+**Feature:** Native token integration for rewards and reputation tracking.
+
+**Requirements:**
+- Creation of a utility token used for bounties, voting rewards, and reputation stakes.
+- Smart contracts to manage token issuance, distribution, and burning.
+- A reputation system that influences voting power and eligibility for higher-value bounties.
+- Transparent metrics for performance and participation.
+
 ---
 
 ## How to Contribute
@@ -32,15 +82,15 @@ We welcome contributions in various forms, including bug fixes, feature implemen
 
 ### 1. Fork the Repository
 1. Navigate to the
-(https://github.com/skill-mind/skillnet-exam-server.git).
+(https://github.com/skill-mind/FortiChain-Server.git).
 2. Click the **Fork** button to create your copy of the repository.
 
 ### 2. Clone the Repository
 - Clone your forked repository to your local machine:
 ```bash
-git clone https://github.com/<your-username>/skill-mind/skillnet-exam-server.git
+git clone https://github.com/<your-username>/skill-mind/FortiChain-Server.git
 
-cd sskillnet-exam-server
+cd FortiChain-Server
 ```
 
 ### 3. Set Up the Project
