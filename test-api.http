@@ -1,0 +1,112 @@
+### Variables
+@baseUrl = http://localhost:3000
+@walletId = 753fc540-1d86-4587-978f-9e15199d8d46
+@ethereumAddress = 0xabcdef1234567890abcdef1234567890abcdef12
+@starknetAddress = 0x057d35a858fc7a5238b9339d640648bb2363cddd729deb357d035d6f27c2d476
+@stellarAddress = GAKONCKYJ7PRRKBZSWVPG3MURUNX4TLNWCAVTPXXGQDKB6BZD5RFA6AN
+
+### Test the root endpoint
+GET {{baseUrl}}/
+Content-Type: application/json
+
+### Get all wallets
+GET {{baseUrl}}/api/wallets
+Content-Type: application/json
+
+### Create a new wallet - Ethereum address
+POST {{baseUrl}}/api/wallets
+Content-Type: application/json
+
+{
+  "address": "{{ethereumAddress}}",
+  "role": "researcher"
+}
+
+### Create a new wallet - Starknet address
+POST {{baseUrl}}/api/wallets
+Content-Type: application/json
+
+{
+  "address": "{{starknetAddress}}",
+  "role": "project_owner"
+}
+
+### Create a new wallet - Stellar address
+POST {{baseUrl}}/api/wallets
+Content-Type: application/json
+
+{
+  "address": "{{stellarAddress}}",
+  "role": "validator"
+}
+
+### Test invalid wallet address
+POST {{baseUrl}}/api/wallets
+Content-Type: application/json
+
+{
+  "address": "invalid-address",
+  "role": "researcher"
+}
+
+### Test invalid role
+POST {{baseUrl}}/api/wallets
+Content-Type: application/json
+
+{
+  "address": "{{ethereumAddress}}",
+  "role": "invalid_role"
+}
+
+### Get wallet by ID (replace with actual ID after creating)
+# Update @walletId above with the ID from a created wallet
+GET {{baseUrl}}/api/wallets/id/{{walletId}}
+Content-Type: application/json
+
+### Get wallet by Ethereum address
+GET {{baseUrl}}/api/wallets/address/{{ethereumAddress}}
+Content-Type: application/json
+
+### Get wallet by Starknet address
+GET {{baseUrl}}/api/wallets/address/{{starknetAddress}}
+Content-Type: application/json
+
+### Get wallet by Stellar address
+GET {{baseUrl}}/api/wallets/address/{{stellarAddress}}
+Content-Type: application/json
+
+### Update wallet (replace with actual ID after creating)
+# Update @walletId above with the ID from a created wallet
+PUT {{baseUrl}}/api/wallets/{{walletId}}
+Content-Type: application/json
+
+{
+  "address": "{{ethereumAddress}}",
+  "role": "validator"
+}
+
+### Delete wallet (replace with actual ID after creating)
+# Update @walletId above with the ID from a created wallet
+DELETE {{baseUrl}}/api/wallets/{{walletId}}
+Content-Type: application/json
+
+### Test error handling - Get non-existent wallet by ID
+GET {{baseUrl}}/api/wallets/id/11111111-1111-1111-1111-111111111111
+Content-Type: application/json
+
+### Test error handling - Get non-existent wallet by address
+GET {{baseUrl}}/api/wallets/address/0x1111111111111111111111111111111111111111
+Content-Type: application/json
+
+### Test error handling - Update non-existent wallet
+PUT {{baseUrl}}/api/wallets/11111111-1111-1111-1111-111111111111
+Content-Type: application/json
+
+{
+  "address": "{{ethereumAddress}}",
+  "role": "validator"
+}
+
+### Test error handling - Delete non-existent wallet
+DELETE {{baseUrl}}/api/wallets/11111111-1111-1111-1111-111111111111
+Content-Type: application/json

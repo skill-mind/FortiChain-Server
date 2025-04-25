@@ -1,10 +1,8 @@
+# Contributing to Fortichain: Enhancing the security of blockchain-based projects.
 
+Thank you for your interest in contributing to Fortichain!
 
-# Contributing to Fortichain: Enhancing the security of blockchain-based projects. 
-
-Thank you for your interest in contributing to Fortichain! 
-
-FortiChain is a decentralized platform designed to enhance the security of blockchain-based projects by streamlining vulnerability disclosure and bug bounty processes. By leveraging blockchain’s inherent transparency and trustlessness, FortiChain allows developers, security researchers, and validators to engage in a secure and automated ecosystem for identifying and rewarding the resolution of smart contract vulnerabilities.
+FortiChain is a decentralized platform designed to enhance the security of blockchain-based projects by streamlining vulnerability disclosure and bug bounty processes. By leveraging blockchain's inherent transparency and trustlessness, FortiChain allows developers, security researchers, and validators to engage in a secure and automated ecosystem for identifying and rewarding the resolution of smart contract vulnerabilities.
 
 ## Project Overview
 
@@ -94,25 +92,126 @@ cd FortiChain-Server
 ```
 
 ### 3. Set Up the Project
-**Prerequisites:**
+
+#### Prerequisites:
 
 - Node.js (v16.x or above)
-- npm 
+- npm
 - git
+- Docker and Docker Compose (for local development)
 
-**Install Dependencies:**
+#### Install Dependencies:
 
 ```bash
-  npm install
+npm install
 ```
-### 4. Create a New Branch
+
+#### Configure Environment Variables:
+Create a `.env` file in the root directory with the following content:
+
+```
+PORT=3000
+NODE_ENV=development
+LOG_LEVEL=info
+```
+
+### 4. Database Setup Using Docker
+
+The project uses PostgreSQL running in Docker. To set up the database:
+
+```bash
+# Start the PostgreSQL container
+docker compose up -d
+```
+
+This will:
+- Create a PostgreSQL instance on port 5432
+- Setup the database with the credentials specified in the docker-compose.yml file
+- Create a persistent volume for data storage
+
+### 5. Running the Application
+
+```bash
+# Start the server in development mode
+npm run dev
+
+# Start the server in production mode
+npm start
+```
+
+The API will be available at `http://localhost:3000`. You can use the test-api.http file to test the existing endpoints.
+
+### 6. Logging
+
+The application uses Winston for logging:
+- Logs are stored in the `logs` directory
+- Error logs are in `logs/error.log`
+- All logs are in `logs/combined.log`
+- Console logs are also available during development
+
+You can adjust the log level in the `.env` file by changing the `LOG_LEVEL` value.
+
+### 7. Testing
+
+The project uses Jest for testing.
+
+#### Running Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run tests with coverage report
+npm run test:coverage
+
+# Run tests in watch mode during development
+npm run test:watch
+```
+
+#### Test Structure
+
+- Integration tests are located in `tests/integration/` directory
+- Unit tests are located in `tests/unit/` directory (if applicable)
+
+#### Writing Tests
+
+When contributing new features, please add corresponding tests:
+
+1. For API endpoints, add integration tests that verify:
+   - Successful operations
+   - Error handling
+   - Edge cases
+   - Input validation
+
+2. For utility functions or models, add unit tests that verify:
+   - Function behavior with various inputs
+   - Edge cases
+   - Error handling
+
+Example test structure (from wallet tests):
+```javascript
+describe('Feature or Component Name', () => {
+  // Setup (if needed)
+  beforeEach(async () => {
+    // Setup code
+  });
+
+  // Individual test cases
+  it('should do something specific', async () => {
+    // Test code
+    expect(result).toBe(expectedValue);
+  });
+});
+```
+
+### 8. Create a New Branch
 
 **Create a branch for your feature or bug fix:**
 ```bash
   git checkout -b feature/<Issue title>
 ```
 
-### 5. Make Changes and Commit
+### 9. Make Changes and Commit
 
 - Implement your changes.
 - Test your changes thoroughly.
@@ -123,14 +222,14 @@ cd FortiChain-Server
    git commit -m "Issue Title"
 ```
 
-### 6. Push Changes
+### 10. Push Changes
  - Push your branch to your forked repository:
 
 ```bash
    git push origin <Issue Title>
 ```
 
-### 7. Create a Pull Request (PR)
+### 11. Create a Pull Request (PR)
 
 - Click on Pull Requests and select New Pull Request.
 - Provide a clear and concise title and description for your PR.
