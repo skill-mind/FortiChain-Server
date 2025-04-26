@@ -21,6 +21,7 @@ const walletRoutes = require('./routes/wallet.routes');
 const projectRoutes = require("./routes/project.routes");
 const userRoutes = require("./routes/user.routes");
 const supportRoutes = require("./routes/support.routes");
+const validatorRankingRoutes = require('./routes/validatorRanking.routes');
 
 // Initialize express app
 const app = express();
@@ -49,6 +50,7 @@ app.use('/api/wallets', walletRoutes);
 app.use("/projects", projectRoutes);
 app.use("/users", userRoutes);
 app.use("/support", supportRoutes);
+app.use('/api/validator-rankings', validatorRankingRoutes);
 
 // Default route
 app.get('/', (req, res) => {
