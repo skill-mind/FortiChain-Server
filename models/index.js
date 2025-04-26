@@ -2,6 +2,7 @@ const sequelize = require('../config/db.config');
 
 // Import all models
 const Wallet = require('./wallet.model');
+const HelpRequest = require('./helpRequest.model');
 const Project = require('./project.model');
 const User = require('./user.model');
 const SupportTicket = require('./supportTicket.model');
@@ -41,6 +42,7 @@ module.exports = {
   sequelize,
   dbConnection,
   Wallet,
+  HelpRequest,
   Project,
   User,
   SupportTicket,
