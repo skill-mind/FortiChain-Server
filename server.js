@@ -19,6 +19,9 @@ const { dbConnection } = require('./models/index');
 // Import routes
 const walletRoutes = require('./routes/wallet.routes');
 const notificationRoutes = require('./routes/notification.routes');
+const projectRoutes = require("./routes/project.routes");
+const userRoutes = require("./routes/user.routes");
+const supportRoutes = require("./routes/support.routes");
 
 // Initialize express app
 const app = express();
@@ -45,6 +48,9 @@ app.use((req, res, next) => {
 // Routes
 app.use('/api/wallets', walletRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use("/projects", projectRoutes);
+app.use("/users", userRoutes);
+app.use("/support", supportRoutes);
 
 // Default route
 app.get('/', (req, res) => {
@@ -61,22 +67,24 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start server and connect to database
-const PORT = process.env.PORT || 3000;
-const startServer = async () => {
-  try {
-    // Connect to database
-    await dbConnection();
-    logger.info('Database connection established successfully');
+// ✅ Export the app (used in tests)
+module.exports = app;
 
-    // Start server
-    app.listen(PORT, () => {
-      logger.info(`Server is running on port ${PORT}`);
-    });
-  } catch (error) {
-    logger.error('Failed to start server:', error);
-    process.exit(1);
-  }
-};
+// 🔥 Start the server only if run directly (not when imported in tests)
+if (require.main === module) {
+  const PORT = process.env.PORT || 3000;
+  const startServer = async () => {
+    try {
+      await dbConnection();
+      logger.info('Database connection established successfully');
+      app.listen(PORT, () => {
+        logger.info(`Server is running on port ${PORT}`);
+      });
+    } catch (error) {
+      logger.error('Failed to start server:', error);
+      process.exit(1);
+    }
+  };
 
-startServer();
+  startServer();
+}
