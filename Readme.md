@@ -74,6 +74,30 @@ FortiChain is a decentralized platform designed to enhance the security of block
 
 ---
 
+## Validator Ranking Endpoints
+
+### Create Validator Ranking
+- **POST** `/api/validator-rankings`
+- **Body:** `{ validatorId, rank, score, notes }`
+- **Response:** Created ranking object
+
+### Get All Validator Rankings
+- **GET** `/api/validator-rankings?page=1&limit=20`
+- **Response:** `{ count, rows: [ ...rankingObjects ] }`
+
+### Get Validator Ranking by ID
+- **GET** `/api/validator-rankings/:id`
+- **Response:** Ranking object
+
+### Update Validator Ranking
+- **PUT** `/api/validator-rankings/:id`
+- **Body:** `{ rank, score, notes }`
+- **Response:** Updated ranking object
+
+### Delete Validator Ranking
+- **DELETE** `/api/validator-rankings/:id`
+- **Response:** `{ message: 'Ranking deleted successfully.' }`
+
 ## How to Contribute
 
 We welcome contributions in various forms, including bug fixes, feature implementations, and documentation improvements.
