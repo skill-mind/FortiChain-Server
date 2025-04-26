@@ -1,79 +1,84 @@
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
+// server.js
+const express    = require('express');
+const cors       = require('cors');
+const helmet     = require('helmet');
 const bodyParser = require('body-parser');
-const dotenv = require('dotenv');
-const morgan = require('morgan');
-const fs = require('fs');
-const path = require('path');
+const dotenv     = require('dotenv');
+const morgan     = require('morgan');
+const fs         = require('fs');
+const path       = require('path');
 
-// Load environment variables
+// Load env
 dotenv.config();
 
-// Import logger
+// Logger
 const logger = require('./utils/logger');
 
-// Import database connection
+// Database connection
 const { dbConnection } = require('./models/index');
 
-// Import routes
-const walletRoutes = require('./routes/wallet.routes');
-const projectRoutes = require("./routes/project.routes");
-const userRoutes = require("./routes/user.routes");
-const supportRoutes = require("./routes/support.routes");
+// Route modules
+const walletRoutes           = require('./routes/wallet.routes');
+const projectRoutes          = require('./routes/project.routes');
+const userRoutes             = require('./routes/user.routes');
+const supportRoutes          = require('./routes/support.routes');
 const validatorRankingRoutes = require('./routes/validatorRanking.routes');
+const transactionRoutes      = require('./routes/transactionRoutes');
+const payoutRoutes           = require('./routes/payoutRoutes');
 
-// Initialize express app
+// Initialize Express app
 const app = express();
 
 // Ensure logs directory exists
 const logDir = path.join(__dirname, 'logs');
-if (!fs.existsSync(logDir)) {
-  fs.mkdirSync(logDir);
-}
+if (!fs.existsSync(logDir)) fs.mkdirSync(logDir);
 
-// Middleware
+// Security & parsing middleware
 app.use(helmet());
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(morgan('combined', { stream: logger.stream }));
 
-// Request logging middleware
+// Request logging
 app.use((req, res, next) => {
   logger.debug(`Request received: ${req.method} ${req.originalUrl}`);
   next();
 });
 
-// Routes
-app.use('/api/wallets', walletRoutes);
-app.use("/projects", projectRoutes);
-app.use("/users", userRoutes);
-app.use("/support", supportRoutes);
+// Mount all feature routes
+app.use('/api/wallets',            walletRoutes);
+app.use('/projects',               projectRoutes);
+app.use('/users',                  userRoutes);
+app.use('/support',                supportRoutes);
 app.use('/api/validator-rankings', validatorRankingRoutes);
+app.use('/api/transactions',       transactionRoutes);
+app.use('/api/payouts',            payoutRoutes);
 
-// Default route
+// Root endpoint
 app.get('/', (req, res) => {
   logger.info('Root endpoint accessed');
   res.send('FortiChain API is running');
 });
 
-// Error handling middleware
+// Error handling
 app.use((err, req, res, next) => {
   logger.error(`Error: ${err.message}`, { stack: err.stack });
   res.status(500).json({
     message: 'An internal server error occurred',
-    error: process.env.NODE_ENV === 'production' ? {} : { message: err.message, stack: err.stack }
+    error: process.env.NODE_ENV === 'production'
+      ? {}
+      : { message: err.message, stack: err.stack },
   });
 });
 
-// ✅ Export the app (used in tests)
+// Export app for tests
 module.exports = app;
 
-// 🔥 Start the server only if run directly (not when imported in tests)
+// Start server if run directly
 if (require.main === module) {
   const PORT = process.env.PORT || 3000;
-  const startServer = async () => {
+  (async () => {
     try {
       await dbConnection();
       logger.info('Database connection established successfully');
@@ -84,7 +89,5 @@ if (require.main === module) {
       logger.error('Failed to start server:', error);
       process.exit(1);
     }
-  };
-
-  startServer();
+  })();
 }
