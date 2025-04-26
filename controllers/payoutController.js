@@ -1,5 +1,4 @@
 const Payout = require('../models/Payout');
-
 exports.createPayout = async (req, res) => {
   try {
     const payout = await Payout.create(req.body);
@@ -18,6 +17,16 @@ exports.getPayouts = async (req, res) => {
   }
 };
 
+exports.getPayoutById = async (req, res) => {
+  try {
+    const payout = await Payout.findById(req.params.id).populate('userId', 'name email');
+    if (!payout) return res.status(404).json({ message: 'Payout not found' });
+    res.json(payout);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 exports.updatePayout = async (req, res) => {
   try {
     const payout = await Payout.findByIdAndUpdate(req.params.id, req.body, { new: true });
@@ -27,6 +36,7 @@ exports.updatePayout = async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 };
+
 
 exports.deletePayout = async (req, res) => {
   try {

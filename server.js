@@ -1,18 +1,17 @@
 // server.js
-const express    = require('express');
-const cors       = require('cors');
-const helmet     = require('helmet');
-const bodyParser = require('body-parser');
-const dotenv         = require('dotenv');
-const morgan         = require('morgan');
-const fs                 = require('fs');
-const path             = require('path');
 
-// Load env
-// Load env
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const bodyParser = require('body-parser');
+const dotenv = require('dotenv');
+const morgan = require('morgan');
+const fs = require('fs');
+const path = require('path');
+
+// Load environment variables
 dotenv.config();
 
-// Logger
 // Logger
 const logger = require('./utils/logger');
 
@@ -20,23 +19,22 @@ const logger = require('./utils/logger');
 const { dbConnection } = require('./models/index');
 
 // Route modules
-const walletRoutes           = require('./routes/wallet.routes');
-const projectRoutes          = require('./routes/project.routes');
-const userRoutes             = require('./routes/user.routes');
-const supportRoutes          = require('./routes/support.routes');
+const walletRoutes = require('./routes/wallet.routes');
+const projectRoutes = require('./routes/project.routes');
+const userRoutes = require('./routes/user.routes');
+const supportRoutes = require('./routes/support.routes');
 const validatorRankingRoutes = require('./routes/validatorRanking.routes');
 const transactionRoutes = require('./routes/transactionRoutes');
-const payoutRoutes      = require('./routes/payoutRoutes');
-const transactionRoutes      = require('./routes/transactionRoutes');
-const payoutRoutes           = require('./routes/payoutRoutes');
+const payoutRoutes = require('./routes/payoutRoutes');
 
 // Initialize Express app
 const app = express();
 
 // Ensure logs directory exists
 const logDir = path.join(__dirname, 'logs');
-if (!fs.existsSync(logDir)) fs.mkdirSync(logDir);
-if (!fs.existsSync(logDir)) fs.mkdirSync(logDir);
+if (!fs.existsSync(logDir)) {
+  fs.mkdirSync(logDir);
+}
 
 // Security & parsing middleware
 app.use(helmet());
@@ -51,21 +49,14 @@ app.use((req, res, next) => {
   next();
 });
 
-// Mount your existing feature routes
-app.use('/api/wallets',   walletRoutes);
-app.use('/projects',       projectRoutes);
-app.use('/users',          userRoutes);
-app.use('/support',        supportRoutes);
-app.use('/api/transactions', transactionRoutes);
-app.use('/api/payouts',      payoutRoutes);
-// Mount all feature routes
-app.use('/api/wallets',            walletRoutes);
-app.use('/projects',               projectRoutes);
-app.use('/users',                  userRoutes);
-app.use('/support',                supportRoutes);
+// Mount feature routes
+app.use('/api/wallets', walletRoutes);
+app.use('/projects', projectRoutes);
+app.use('/users', userRoutes);
+app.use('/support', supportRoutes);
 app.use('/api/validator-rankings', validatorRankingRoutes);
-app.use('/api/transactions',       transactionRoutes);
-app.use('/api/payouts',            payoutRoutes);
+app.use('/api/transactions', transactionRoutes);
+app.use('/api/payouts', payoutRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -81,9 +72,6 @@ app.use((err, req, res, next) => {
     error: process.env.NODE_ENV === 'production'
       ? {}
       : { message: err.message, stack: err.stack },
-    error: process.env.NODE_ENV === 'production'
-      ? {}
-      : { message: err.message, stack: err.stack },
   });
 });
 
@@ -91,10 +79,8 @@ app.use((err, req, res, next) => {
 module.exports = app;
 
 // Start server if run directly
-// Start server if run directly
 if (require.main === module) {
   const PORT = process.env.PORT || 3000;
-  (async () => {
   (async () => {
     try {
       await dbConnection();
@@ -106,6 +92,5 @@ if (require.main === module) {
       logger.error('Failed to start server:', error);
       process.exit(1);
     }
-  })();
   })();
 }
