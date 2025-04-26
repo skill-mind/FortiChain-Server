@@ -1,22 +1,18 @@
-const express = require("express");
-const ProjectController = require("../controllers/project.controller");
-const { validateIdParam } = require("../middlewares/validators");
-const { validationResult } = require("express-validator");
-
+const express = require('express');
+const { body } = require('express-validator');
 const router = express.Router();
+const payoutController = require('../controllers/payoutController');
 
-router.get("/", ProjectController.getAllProjects);
+const payoutValidation = [
+  body('userId').notEmpty().withMessage('User ID is required'),
+  body('amount').isNumeric().withMessage('Amount must be a number'),
+  body('method').notEmpty().withMessage('Payout method is required'),
+];
 
-router.post("/:id/close", validateIdParam, async (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
-  next();
-}, ProjectController.closeProject);
-
-router.get("/:id", validateIdParam, async (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
-  next();
-}, ProjectController.getProjectById);
+router.post('/', payoutValidation, payoutController.createPayout);
+router.get('/', payoutController.getPayouts);
+router.get('/:id', payoutController.getPayoutById);
+router.put('/:id', payoutValidation, payoutController.updatePayout);
+router.delete('/:id', payoutController.deletePayout);
 
 module.exports = router;
