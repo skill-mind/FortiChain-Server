@@ -5,13 +5,15 @@ const Wallet = require('./wallet.model');
 const Project = require('./project.model');
 const User = require('./user.model');
 const SupportTicket = require('./supportTicket.model');
+const ValidatorRanking = require('./validatorRanking.model');
 
 // Optionally define associations (if any)
 const initModels = () => {
-  if (Wallet.associate) Wallet.associate({ Project, User, SupportTicket });
-  if (Project.associate) Project.associate({ Wallet, User, SupportTicket });
-  if (User.associate) User.associate({ Wallet, Project, SupportTicket });
-  if (SupportTicket.associate) SupportTicket.associate({ Wallet, Project, User });
+  if (Wallet.associate) Wallet.associate({ Project, User, SupportTicket, ValidatorRanking });
+  if (Project.associate) Project.associate({ Wallet, User, SupportTicket, ValidatorRanking });
+  if (User.associate) User.associate({ Wallet, Project, SupportTicket, ValidatorRanking });
+  if (SupportTicket.associate) SupportTicket.associate({ Wallet, Project, User, ValidatorRanking });
+  if (ValidatorRanking.associate) ValidatorRanking.associate({ User });
 };
 
 // Test database connection and sync models
@@ -41,5 +43,6 @@ module.exports = {
   Wallet,
   Project,
   User,
-  SupportTicket
+  SupportTicket,
+  ValidatorRanking
 };

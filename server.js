@@ -16,15 +16,14 @@ const logger = require('./utils/logger');
 
 // DB
 const { dbConnection } = require('./models/index');
-
-// Existing routes
-const walletRoutes  = require('./routes/wallet.routes');
-const projectRoutes = require('./routes/project.routes');
-const userRoutes    = require('./routes/user.routes');
-const supportRoutes = require('./routes/support.routes');
+// Import routes
+const walletRoutes = require('./routes/wallet.routes');
+const projectRoutes = require("./routes/project.routes");
+const userRoutes = require("./routes/user.routes");
+const supportRoutes = require("./routes/support.routes");
+const validatorRankingRoutes = require('./routes/validatorRanking.routes');
 const transactionRoutes = require('./routes/transactionRoutes');
 const payoutRoutes      = require('./routes/payoutRoutes');
-
 const app = express();
 
 // Ensure logs directory exists
@@ -49,6 +48,7 @@ app.use('/users',          userRoutes);
 app.use('/support',        supportRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/payouts',      payoutRoutes);
+app.use('/api/validator-rankings', validatorRankingRoutes);
 
 // Root
 app.get('/', (req, res) => {
