@@ -1,6 +1,7 @@
 const request = require('supertest');
 const app = require('../../server');
 const { Profile, User } = require('../../models');
+console.log('Profile model:', Profile);
 const sequelize = require('../../config/db.config');
 
 const testUserId = 'a1b2c3d4-e5f6-7890-1234-56789abcdef0';
@@ -12,7 +13,7 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  await Profile.destroy({ where: {}, truncate: true });
+  await Profile.destroy({ where: {}, truncate: true }); // Line 15
   await User.destroy({ where: {}, truncate: true });
 
   await User.create({
