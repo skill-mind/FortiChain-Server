@@ -71,11 +71,6 @@ const Project = sequelize.define('Project', {
   allocatedBounty: {
     type: DataTypes.FLOAT, // Amount allocated for the bounty
     allowNull: false,
-    validate: {
-      isFloat: { args: true, msg: "Allocated bounty must be a valid number" },
-      min: { args: 0, msg: "Allocated bounty must be non-negative" },
-      max: { args: 1000000, msg: "Allocated bounty cannot exceed 1,000,000" }, // Example max limit
-    },
   },
   bountyCurrency: {
     type: DataTypes.STRING, // Currency for the bounty, e.g., USD
@@ -84,6 +79,12 @@ const Project = sequelize.define('Project', {
   dateOfExpiry: {
     type: DataTypes.DATE, // Expiry date for the bounty allocation
     allowNull: false,
+    validate: {
+      isAfter: {
+        args: new Date().toISOString().split('T')[0], // Ensures the date is in the future
+        msg: "Date of expiry must be a future date",
+      },
+    },
   },
   autoTopUp: {
     type: DataTypes.BOOLEAN, // Auto-top-up flag
@@ -94,3 +95,4 @@ const Project = sequelize.define('Project', {
 });
 
 module.exports = Project;
+

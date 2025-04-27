@@ -15,12 +15,12 @@ exports.createProject = async (req, res) => {
       }
     }
 
-    // Validate allocatedBounty
-    if (projectData.allocatedBounty === undefined || projectData.allocatedBounty === null) {
-      return res.status(400).json({ message: "Allocated bounty is required" });
-    }
-    if (isNaN(projectData.allocatedBounty) || projectData.allocatedBounty < 0) {
-      return res.status(400).json({ message: "Allocated bounty must be a non-negative number" });
+    // Convert allocatedBounty to a number
+    if (projectData.allocatedBounty !== undefined) {
+      projectData.allocatedBounty = parseFloat(projectData.allocatedBounty);
+      if (isNaN(projectData.allocatedBounty)) {
+        return res.status(400).json({ message: "Allocated bounty must be a valid number" });
+      }
     }
 
     const project = await Project.create(projectData);
@@ -91,5 +91,6 @@ exports.deleteProject = async (req, res) => {
     res.status(204).send();
   } catch (error) {
     res.status(500).json({ message: 'Error deleting project', error });
+ 
   }
 };
