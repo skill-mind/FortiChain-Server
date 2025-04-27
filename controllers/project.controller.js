@@ -15,10 +15,18 @@ exports.createProject = async (req, res) => {
       }
     }
 
+    // Validate allocatedBounty
+    if (projectData.allocatedBounty === undefined || projectData.allocatedBounty === null) {
+      return res.status(400).json({ message: "Allocated bounty is required" });
+    }
+    if (isNaN(projectData.allocatedBounty) || projectData.allocatedBounty < 0) {
+      return res.status(400).json({ message: "Allocated bounty must be a non-negative number" });
+    }
+
     const project = await Project.create(projectData);
     res.status(201).json(project);
   } catch (error) {
-    res.status(500).json({ message: 'Error creating project', error });
+    res.status(500).json({ message: "Error creating project", error });
   }
 };
 

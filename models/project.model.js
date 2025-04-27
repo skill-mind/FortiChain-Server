@@ -72,7 +72,9 @@ const Project = sequelize.define('Project', {
     type: DataTypes.FLOAT, // Amount allocated for the bounty
     allowNull: false,
     validate: {
-      min: 0, // Bounty amount must be non-negative
+      isFloat: { args: true, msg: "Allocated bounty must be a valid number" },
+      min: { args: 0, msg: "Allocated bounty must be non-negative" },
+      max: { args: 1000000, msg: "Allocated bounty cannot exceed 1,000,000" }, // Example max limit
     },
   },
   bountyCurrency: {
