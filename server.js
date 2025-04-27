@@ -15,13 +15,14 @@ const logger = require('./utils/logger');
 
 // Import database connection
 const { dbConnection } = require('./models/index');
-
+const fileUpload = require('express-fileupload');
 // Import routes
 const walletRoutes = require('./routes/wallet.routes');
 const projectRoutes = require("./routes/project.routes");
 const userRoutes = require("./routes/user.routes");
 const supportRoutes = require("./routes/support.routes");
 const validatorRankingRoutes = require('./routes/validatorRanking.routes');
+const helpRequestRoutes = require('./routes/helpRequest.routes');
 
 // Initialize express app
 const app = express();
@@ -31,6 +32,7 @@ const logDir = path.join(__dirname, 'logs');
 if (!fs.existsSync(logDir)) {
   fs.mkdirSync(logDir);
 }
+
 
 // Middleware
 app.use(helmet());
@@ -45,12 +47,19 @@ app.use((req, res, next) => {
   next();
 });
 
+// Add this after other middleware but before routes
+app.use(fileUpload({
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  abortOnLimit: true,
+}));
+
 // Routes
 app.use('/api/wallets', walletRoutes);
 app.use("/projects", projectRoutes);
 app.use("/users", userRoutes);
 app.use("/support", supportRoutes);
 app.use('/api/validator-rankings', validatorRankingRoutes);
+app.use('/api/help-requests', helpRequestRoutes);
 
 // Default route
 app.get('/', (req, res) => {
