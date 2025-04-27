@@ -1,49 +1,96 @@
-const { Project } = require("../models");
+const Project = require('../models/project.model');
 
-// Fetch all projects
+// Create a Project
+exports.createProject = async (req, res) => {
+  try {
+    const projectData = req.body;
+
+    // Handle file uploads
+    if (req.files) {
+      if (req.files.supportingDocument) {
+        projectData.supportingDocument = req.files.supportingDocument[0].path;
+      }
+      if (req.files.projectLogo) {
+        projectData.projectLogo = req.files.projectLogo[0].path;
+      }
+    }
+
+    // Convert allocatedBounty to a number
+    if (projectData.allocatedBounty !== undefined) {
+      projectData.allocatedBounty = parseFloat(projectData.allocatedBounty);
+      if (isNaN(projectData.allocatedBounty)) {
+        return res.status(400).json({ message: "Allocated bounty must be a valid number" });
+      }
+    }
+
+    const project = await Project.create(projectData);
+    res.status(201).json(project);
+  } catch (error) {
+    res.status(500).json({ message: "Error creating project", error });
+  }
+};
+
+// Get All Projects
 exports.getAllProjects = async (req, res) => {
   try {
-    // Ensure table exists before querying
-    await Project.sync();
-    
     const projects = await Project.findAll();
-    res.json(projects);
-  } catch (err) {
-    console.error("Failed to fetch projects:", err);
-    res.status(500).json({ error: "Failed to fetch projects." });
+    res.status(200).json(projects);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching projects', error });
   }
 };
 
-// Close a project
-exports.closeProject = async (req, res) => {
-  try {
-    // Validate ID format
-    if (req.params.id === 'invalid-id') {
-      return res.status(400).json({ errors: [{ msg: "Invalid project ID format" }] });
-    }
-    
-    const project = await Project.findByPk(req.params.id);
-    if (!project) return res.status(404).json({ error: "Project not found." });
-
-    project.status = "closed";
-    await project.save();
-
-    res.json({ message: "Project closed successfully." });
-  } catch (err) {
-    console.error("Failed to close project:", err);
-    res.status(500).json({ error: "Failed to close project." });
-  }
-};
-
-// View single project by ID
+// Get a Single Project by ID
 exports.getProjectById = async (req, res) => {
   try {
     const project = await Project.findByPk(req.params.id);
-    if (!project) return res.status(404).json({ error: "Project not found." });
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+    res.status(200).json(project);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching project', error });
+  }
+};
 
-    res.json(project);
-  } catch (err) {
-    console.error("Failed to fetch project:", err);
-    res.status(500).json({ error: "Failed to fetch project." });
+// Update a Project
+exports.updateProject = async (req, res) => {
+  try {
+    const project = await Project.findByPk(req.params.id);
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+
+    const updatedData = req.body;
+
+    // Handle file uploads
+    if (req.files) {
+      if (req.files.supportingDocument) {
+        updatedData.supportingDocument = req.files.supportingDocument[0].path;
+      }
+      if (req.files.projectLogo) {
+        updatedData.projectLogo = req.files.projectLogo[0].path;
+      }
+    }
+
+    await project.update(updatedData);
+    res.status(200).json(project);
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating project', error });
+  }
+};
+
+// Delete a Project
+exports.deleteProject = async (req, res) => {
+  try {
+    const project = await Project.findByPk(req.params.id);
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+    await project.destroy();
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({ message: 'Error deleting project', error });
+ 
   }
 };
