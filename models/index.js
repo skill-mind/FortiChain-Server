@@ -1,6 +1,10 @@
 const sequelize = require('../config/db.config');
+const HelpRequest = require('./helpRequest.model');
+const Project = require('./project.model');
+const SupportTicket = require('./supportTicket.model');
+const User = require('./user.model');
 const Wallet = require('./wallet.model');
-
+const ValidatorRanking = require('./validatorRanking.model');
 // Test database connection
 const dbConnection = async () => {
   try {
