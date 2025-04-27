@@ -3,20 +3,17 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
-// Determine environment
 const isTest = process.env.NODE_ENV === 'test';
 
 let sequelize;
 
 if (isTest) {
-  // Use in-memory SQLite for testing
   sequelize = new Sequelize({
     dialect: 'sqlite',
     storage: ':memory:',
     logging: false
   });
 } else {
-  // Production/development database connection
   sequelize = new Sequelize(
     process.env.DB_NAME || 'fortichain_db',
     process.env.DB_USER || 'fortichain_user',

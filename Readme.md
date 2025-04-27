@@ -178,7 +178,7 @@ npm run test:watch
 When contributing new features, please add corresponding tests:
 
 1. For API endpoints, add integration tests that verify:
-   - Successful operations
+   - Successful operations 
    - Error handling
    - Edge cases
    - Input validation

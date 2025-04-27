@@ -7,6 +7,9 @@ const morgan = require('morgan');
 const fs = require('fs');
 const path = require('path');
 
+
+
+
 // Load environment variables
 dotenv.config();
 
@@ -20,7 +23,11 @@ const { dbConnection } = require('./models/index');
 const walletRoutes = require('./routes/wallet.routes');
 const projectRoutes = require("./routes/project.routes");
 const userRoutes = require("./routes/user.routes");
-const supportRoutes = require("./routes/support.routes");
+// const supportRoutes = require("./routes/support.routes");
+const supportRoutes = require("./routes/support.routes"); // Import support routes
+const profileRoutes = require('./routes/profile.routes');
+
+
 
 // Initialize express app
 const app = express();
@@ -49,6 +56,8 @@ app.use('/api/wallets', walletRoutes);
 app.use("/projects", projectRoutes);
 app.use("/users", userRoutes);
 app.use("/support", supportRoutes);
+app.use('/api', profileRoutes); // Or your preferred base URL
+
 
 // Default route
 app.get('/', (req, res) => {
