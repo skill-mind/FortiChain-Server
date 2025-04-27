@@ -18,6 +18,7 @@ const { dbConnection } = require('./models/index');
 
 // Import routes
 const walletRoutes = require('./routes/wallet.routes');
+const projectRoutes = require("./routes/project.routes");
 
 // Initialize express app
 const app = express();
@@ -43,6 +44,7 @@ app.use((req, res, next) => {
 
 // Routes
 app.use('/api/wallets', walletRoutes);
+app.use('/api/project', projectRoutes);
 
 // Default route
 app.get('/', (req, res) => {
