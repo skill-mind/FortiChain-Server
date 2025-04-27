@@ -9,6 +9,9 @@ const morgan = require('morgan');
 const fs = require('fs');
 const path = require('path');
 
+
+
+
 // Load environment variables
 dotenv.config();
 
@@ -26,6 +29,7 @@ const supportRoutes = require('./routes/support.routes');
 const validatorRankingRoutes = require('./routes/validatorRanking.routes');
 const transactionRoutes = require('./routes/transactionRoutes');
 const payoutRoutes = require('./routes/payoutRoutes');
+const profileRoutes = require('./routes/profile.routes');
 
 // Initialize Express app
 const app = express();
@@ -57,6 +61,7 @@ app.use('/support', supportRoutes);
 app.use('/api/validator-rankings', validatorRankingRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/payouts', payoutRoutes);
+app.use('/api', profileRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
