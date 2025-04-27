@@ -26,6 +26,7 @@ const userRoutes = require("./routes/user.routes");
 const supportRoutes = require("./routes/support.routes");
 const validatorRankingRoutes = require('./routes/validatorRanking.routes');
 const profileRoutes = require('./routes/profile.routes');
+const helpRequestRoutes = require('./routes/helpRequest.routes');
 
 // Initialize express app
 const app = express();
@@ -56,6 +57,7 @@ app.use("/users", userRoutes);
 app.use("/support", supportRoutes);
 app.use('/api/validator-rankings', validatorRankingRoutes);
 app.use('/api', profileRoutes);
+app.use('/api/help-requests', helpRequestRoutes);
 
 // Default route
 app.get('/', (req, res) => {
