@@ -3,10 +3,10 @@ const { body } = require('express-validator');
 const router = express.Router();
 const transactionController = require('../controllers/transactionController');
 
-
 const transactionValidation = [
   body('userId').notEmpty().withMessage('User ID is required'),
   body('amount').isNumeric().withMessage('Amount must be a number'),
+  body('type').isIn(['credit', 'debit']).withMessage('Type must be either credit or debit'),
   body('reference').notEmpty().withMessage('Reference is required'),
 ];
 
