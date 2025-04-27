@@ -6,6 +6,8 @@ const Project = require('./project.model');
 const User = require('./user.model');
 const SupportTicket = require('./supportTicket.model');
 const ValidatorRanking = require('./validatorRanking.model');
+const Profile = require('./profile.model');
+
 
 // Optionally define associations (if any)
 const initModels = () => {
@@ -25,7 +27,8 @@ const dbConnection = async () => {
     // Initialize model relationships
     initModels();
 
-    // Sync all models to the database
+   // Sync all models to the database
+
     await sequelize.sync({ alter: process.env.NODE_ENV !== 'production' });
     console.log('✅ Database synchronized successfully.');
 
@@ -44,5 +47,9 @@ module.exports = {
   Project,
   User,
   SupportTicket,
-  ValidatorRanking
+  ValidatorRanking,
+  Profile,
 };
+
+
+
