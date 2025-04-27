@@ -6,14 +6,18 @@ dotenv.config();
 // Determine environment
 const isTest = process.env.NODE_ENV === 'test';
 
+let sequelize;
 
-const sequelize = isTest 
-  ? new Sequelize({
-      dialect: 'sqlite',
-      storage: ':memory:',
-      logging: false
-    })
-  : new Sequelize(
+if (isTest) {
+  // Use in-memory SQLite for testing
+  sequelize = new Sequelize({
+    dialect: 'sqlite',
+    storage: ':memory:',
+    logging: false
+  });
+} else {
+  // Production/development database connection
+  sequelize = new Sequelize(
     process.env.DB_NAME || 'fortichain_db',
     process.env.DB_USER || 'fortichain_user',
     process.env.DB_PASSWORD || 'fortichain_password',
@@ -29,10 +33,7 @@ const sequelize = isTest
       },
       logging: false
     }
-    );
+  );
+}
 
-// Export both the sequelize instance and the Sequelize class
-module.exports = { 
-  sequelize,
-  Sequelize
-};
+module.exports = sequelize;
