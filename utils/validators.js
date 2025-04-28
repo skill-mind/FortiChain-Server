@@ -34,6 +34,21 @@ const validateWallet = (data) => {
   return walletSchema.validate(data, { abortEarly: false });
 };
 
+//help request
+const helpRequestSchema = Joi.object({
+  email: Joi.string().email().required(),
+  subject: Joi.string().default('Vulnerability Report'),
+  message: Joi.string().min(10).max(256).required(),
+});
+const documentSchema = Joi.object({
+  document: Joi.object({
+    mimetype: Joi.string().valid('application/pdf').required(),
+    size: Joi.number().max(5 * 1024 * 1024).required(), // 5MB max
+  }).unknown(true),
+});
+
 module.exports = {
-  validateWallet
+  validateWallet,
+  helpRequestSchema,
+  documentSchema,
 };
