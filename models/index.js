@@ -8,6 +8,7 @@ const SupportTicket = require('./supportTicket.model');
 const ValidatorRanking = require('./validatorRanking.model');
 const Profile = require('./profile.model');
 const HelpRequest = require('./helpRequest.model');
+const tips = require('./tips.models');
 
 
 // Optionally define associations (if any)
@@ -51,6 +52,7 @@ module.exports = {
   ValidatorRanking,
   Profile,
   HelpRequest,
+  tips
 };
 
 
