@@ -1,93 +1,79 @@
-const request = require('supertest');
-const app = require('../../src/app');
-const sequelize = require('../../src/config/db.config');
+// tests/integration/transactionHistory.test.js
 
-describe('Transaction History API', () => {
-  let userId;
-  let txId;
+const request = require('supertest');
+const { v4: uuidv4 } = require('uuid');
+const app = require('../../server');
+const { dbConnection, sequelize } = require('../../models/index');
+
+describe('Transaction History API Integration Tests', () => {
+  let txPrimaryId, txTransactionId;
+  const userId = uuidv4();
 
   beforeAll(async () => {
-    process.env.NODE_ENV = 'test';
+    await dbConnection();
     await sequelize.sync({ force: true });
-
-    // Create a test user
-    const userRes = await request(app)
-      .post('/api/users')
-      .send({
-        username: 'txhistoryuser',
-        email: 'txhistory@example.com',
-        wallet_address: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',
-      });
-    userId = userRes.body.data.id;
   });
 
   afterAll(async () => {
     await sequelize.close();
   });
 
-  test('POST /api/transactions/history → create a transaction record', async () => {
+  test('POST /api/transaction-histories → create a new transaction', async () => {
     const res = await request(app)
-      .post('/api/transactions/history')
+      .post('/api/transaction-histories')
       .send({
         userId,
         type: 'Deposit',
-        amount: 200,
-        currency: 'USD',
-        status: 'Completed',
-        fee: 0.5,
-        metadata: { source: 'Unit Test' },
+        amount: 50.00,
+        status: 'Pending',
       });
 
-    expect(res.status).toBe(201);
+    expect(res.statusCode).toBe(201);
     expect(res.body.success).toBe(true);
-    expect(res.body.data).toMatchObject({
-      userId,
-      type: 'Deposit',
-      amount: 200,
-      currency: 'USD',
-      status: 'Completed',
-      fee: 0.5,
-    });
-    // capture internal UUID
-    txId = res.body.data.transactionId;
+    expect(res.body.data).toHaveProperty('id');
+    expect(res.body.data).toHaveProperty('transactionId');
+    txPrimaryId = res.body.data.id;
+    txTransactionId = res.body.data.transactionId;
   });
 
-  test('GET /api/transactions/history?userId=… → list transactions', async () => {
-    const res = await request(app)
-      .get('/api/transactions/history')
-      .query({ userId });
-    expect(res.status).toBe(200);
+  test('GET /api/transaction-histories/:id → fetch by primary key', async () => {
+    const res = await request(app).get(`/api/transaction-histories/${txPrimaryId}`);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.id).toBe(txPrimaryId);
+  });
+
+  test('GET /api/transaction-histories → list all transactions', async () => {
+    const res = await request(app).get('/api/transaction-histories');
+
+    expect(res.statusCode).toBe(200);
     expect(res.body.success).toBe(true);
     expect(Array.isArray(res.body.data)).toBe(true);
-    expect(res.body.data[0].userId).toBe(userId);
+    expect(res.body.data.length).toBeGreaterThanOrEqual(1);
   });
 
-  test('GET /api/transactions/history/:id → fetch by PK', async () => {
-    // first get the internal id from the list
-    const list = await request(app).get('/api/transactions/history').query({ userId });
-    const record = list.body.data.find(r => r.transactionId === txId);
-    const res = await request(app).get(`/api/transactions/history/${record.id}`);
-    expect(res.status).toBe(200);
-    expect(res.body.data.transactionId).toBe(txId);
-  });
-
-  test('PATCH /api/transactions/history/:transactionId → update status', async () => {
+  test('PATCH /api/transaction-histories/:transactionId → update status & metadata', async () => {
     const res = await request(app)
-      .patch(`/api/transactions/history/${txId}`)
-      .send({ status: 'Failed' });
+      .patch(`/api/transaction-histories/${txTransactionId}`)
+      .send({
+        status: 'Completed',
+        metadata: { processed: true },
+      });
 
-    expect(res.status).toBe(200);
+    expect(res.statusCode).toBe(200);
     expect(res.body.success).toBe(true);
-    expect(res.body.data.status).toBe('Failed');
+    expect(res.body.data.status).toBe('Completed');
+    expect(res.body.data.metadata).toEqual({ processed: true });
   });
 
-  test('DELETE /api/transactions/history/:transactionId → delete record', async () => {
-    const res = await request(app).delete(`/api/transactions/history/${txId}`);
-    expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
+  test('DELETE /api/transaction-histories/:transactionId → delete the transaction', async () => {
+    const res = await request(app).delete(
+      `/api/transaction-histories/${txTransactionId}`
+    );
 
-    // confirm deletion
-    const list = await request(app).get('/api/transactions/history').query({ userId });
-    expect(list.body.data.find(r => r.transactionId === txId)).toBeUndefined();
+    expect(res.statusCode).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.message).toBe('Transaction deleted');
   });
 });

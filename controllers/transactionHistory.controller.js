@@ -1,3 +1,5 @@
+// controllers/transactionHistory.controller.js
+
 const TransactionHistory = require('../models/transactionHistory.model');
 
 const TransactionHistoryController = {
@@ -8,7 +10,7 @@ const TransactionHistoryController = {
       if (!userId || !type || isNaN(amount) || !status) {
         return res.status(400).json({
           success: false,
-          message: 'Missing required transaction fields'
+          message: 'Missing required transaction fields',
         });
       }
 
@@ -22,26 +24,26 @@ const TransactionHistoryController = {
         metadata,
       });
 
-      res.status(201).json({ success: true, data: tx });
+      return res.status(201).json({ success: true, data: tx });
     } catch (err) {
       next(err);
     }
   },
 
-  // Get a single transaction by its internal ID
+  // Get a single transaction by its primary key
   getTransactionById: async (req, res, next) => {
     try {
       const tx = await TransactionHistory.findByPk(req.params.id);
       if (!tx) {
         return res.status(404).json({ success: false, message: 'Transaction not found' });
       }
-      res.json({ success: true, data: tx });
+      return res.json({ success: true, data: tx });
     } catch (err) {
       next(err);
     }
   },
 
-  // List transactions (filter by userId, type, status, pagination)
+  // List transactions
   getAllTransactions: async (req, res, next) => {
     try {
       const { userId, type, status, limit = 20, offset = 0 } = req.query;
@@ -52,11 +54,11 @@ const TransactionHistoryController = {
 
       const txs = await TransactionHistory.findAll({
         where,
-        limit: parseInt(limit),
-        offset: parseInt(offset),
+        limit: parseInt(limit, 10),
+        offset: parseInt(offset, 10),
         order: [['date', 'DESC']],
       });
-      res.json({ success: true, data: txs });
+      return res.json({ success: true, data: txs });
     } catch (err) {
       next(err);
     }
@@ -67,14 +69,21 @@ const TransactionHistoryController = {
     try {
       const updates = (({ status, metadata }) => ({ status, metadata }))(req.body);
 
-      const [count, [updated]] = await TransactionHistory.update(updates, {
+      // 1) run update
+      const result = await TransactionHistory.update(updates, {
         where: { transactionId: req.params.transactionId },
-        returning: true,
       });
+      const count = Array.isArray(result) ? result[0] : result;
+
       if (count === 0) {
         return res.status(404).json({ success: false, message: 'Transaction not found' });
       }
-      res.json({ success: true, data: updated });
+
+      // 2) re-fetch updated record
+      const updated = await TransactionHistory.findOne({
+        where: { transactionId: req.params.transactionId },
+      });
+      return res.json({ success: true, data: updated });
     } catch (err) {
       next(err);
     }
@@ -89,7 +98,7 @@ const TransactionHistoryController = {
       if (count === 0) {
         return res.status(404).json({ success: false, message: 'Transaction not found' });
       }
-      res.json({ success: true, message: 'Transaction deleted' });
+      return res.json({ success: true, message: 'Transaction deleted' });
     } catch (err) {
       next(err);
     }

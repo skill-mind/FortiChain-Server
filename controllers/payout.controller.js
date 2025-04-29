@@ -1,3 +1,5 @@
+// controllers/payout.controller.js
+
 const { v4: uuidv4 } = require('uuid');
 const Payout = require('../models/payout.model');
 
@@ -9,7 +11,7 @@ const PayoutController = {
       if (!userId || isNaN(amount) || Number(amount) <= 0) {
         return res.status(400).json({
           success: false,
-          message: 'Valid userId and amount are required'
+          message: 'Valid userId and amount are required',
         });
       }
 
@@ -23,7 +25,7 @@ const PayoutController = {
         status: 'Pending',
       });
 
-      res.status(201).json({ success: true, data: payout });
+      return res.status(201).json({ success: true, data: payout });
     } catch (err) {
       next(err);
     }
@@ -36,13 +38,13 @@ const PayoutController = {
       if (!payout) {
         return res.status(404).json({ success: false, message: 'Payout not found' });
       }
-      res.json({ success: true, data: payout });
+      return res.json({ success: true, data: payout });
     } catch (err) {
       next(err);
     }
   },
 
-  // List payouts (with optional filtering / pagination)
+  // List payouts
   getAllPayouts: async (req, res, next) => {
     try {
       const { userId, status, limit = 20, offset = 0 } = req.query;
@@ -52,31 +54,34 @@ const PayoutController = {
 
       const payouts = await Payout.findAll({
         where,
-        limit: parseInt(limit),
-        offset: parseInt(offset),
+        limit: parseInt(limit, 10),
+        offset: parseInt(offset, 10),
         order: [['requestedAt', 'DESC']],
       });
-      res.json({ success: true, data: payouts });
+      return res.json({ success: true, data: payouts });
     } catch (err) {
       next(err);
     }
   },
 
-  // Update a payout (e.g. mark as Completed, set processedAt, change fee)
+  // Update a payout
   updatePayout: async (req, res, next) => {
     try {
       const { id } = req.params;
       const updates = (({ status, processedAt, fee, metadata }) => ({ status, processedAt, fee, metadata }))(req.body);
 
-      const [count, [updated]] = await Payout.update(updates, {
-        where: { id },
-        returning: true,
-      });
+      // 1) run update
+      const result = await Payout.update(updates, { where: { id } });
+      // result might be a number or [number]
+      const count = Array.isArray(result) ? result[0] : result;
+
       if (count === 0) {
         return res.status(404).json({ success: false, message: 'Payout not found' });
       }
 
-      res.json({ success: true, data: updated });
+      // 2) re-fetch the updated record
+      const updated = await Payout.findByPk(id);
+      return res.json({ success: true, data: updated });
     } catch (err) {
       next(err);
     }
@@ -89,7 +94,7 @@ const PayoutController = {
       if (count === 0) {
         return res.status(404).json({ success: false, message: 'Payout not found' });
       }
-      res.json({ success: true, message: 'Payout deleted' });
+      return res.json({ success: true, message: 'Payout deleted' });
     } catch (err) {
       next(err);
     }

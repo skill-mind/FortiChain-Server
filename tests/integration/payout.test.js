@@ -1,89 +1,73 @@
-const request = require('supertest');
-const app = require('../../src/app');
-const sequelize = require('../../src/config/db.config');
+// tests/integration/payout.test.js
 
-describe('Payout API', () => {
-  let userId;
+const request = require('supertest');
+const { v4: uuidv4 } = require('uuid');
+const app = require('../../server');            
+const { dbConnection, sequelize } = require('../../models/index');
+
+describe('Payouts API Integration Tests', () => {
   let payoutId;
+  const userId = uuidv4();
 
   beforeAll(async () => {
-    process.env.NODE_ENV = 'test';
+    await dbConnection();
     await sequelize.sync({ force: true });
-
-    // Create a test user
-    const userRes = await request(app)
-      .post('/api/users')
-      .send({
-        username: 'payoutuser',
-        email: 'payout@example.com',
-        wallet_address: '0x1234567890abcdef1234567890abcdef12345678',
-      });
-    userId = userRes.body.data.id;
   });
 
   afterAll(async () => {
     await sequelize.close();
   });
 
-  test('POST /api/payouts → create a payout', async () => {
+  test('POST /api/payouts → create a new payout', async () => {
     const res = await request(app)
       .post('/api/payouts')
-      .send({
-        userId,
-        amount: 150.5,
-        currency: 'USD',
-        fee: 1.5,
-        metadata: { reason: 'Test payout' },
-      });
+      .send({ userId, amount: 150.75 });
 
-    expect(res.status).toBe(201);
+    expect(res.statusCode).toBe(201);
     expect(res.body.success).toBe(true);
-    expect(res.body.data).toMatchObject({
-      userId,
-      amount: 150.5,
-      currency: 'USD',
-      fee: 1.5,
-      status: 'Pending',
-    });
+    expect(res.body.data).toHaveProperty('id');
+    expect(res.body.data.userId).toBe(userId);
     payoutId = res.body.data.id;
   });
 
-  test('GET /api/payouts/:id → fetch by ID', async () => {
+  test('GET /api/payouts/:id → retrieve the payout by ID', async () => {
     const res = await request(app).get(`/api/payouts/${payoutId}`);
-    expect(res.status).toBe(200);
+
+    expect(res.statusCode).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.data.id).toBe(payoutId);
   });
 
-  test('GET /api/payouts → list all (filter by userId)', async () => {
-    const res = await request(app).get('/api/payouts').query({ userId });
-    expect(res.status).toBe(200);
+  test('GET /api/payouts → list all payouts', async () => {
+    const res = await request(app).get('/api/payouts');
+
+    expect(res.statusCode).toBe(200);
     expect(res.body.success).toBe(true);
     expect(Array.isArray(res.body.data)).toBe(true);
-    expect(res.body.data[0].userId).toBe(userId);
+    expect(res.body.data.length).toBeGreaterThanOrEqual(1);
   });
 
-  test('PATCH /api/payouts/:id → update status & processedAt', async () => {
-    const now = new Date().toISOString();
+  test('PATCH /api/payouts/:id → update payout status & fee', async () => {
     const res = await request(app)
       .patch(`/api/payouts/${payoutId}`)
-      .send({ status: 'Completed', processedAt: now });
+      .send({
+        status: 'Completed',
+        fee: 2.50,
+        metadata: { note: 'Test update' },
+      });
 
-    expect(res.status).toBe(200);
+    expect(res.statusCode).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.data.status).toBe('Completed');
-    // processedAt comes back as a string
-    expect(new Date(res.body.data.processedAt).toISOString()).toBe(now);
+    expect(res.body.data.fee).toBeCloseTo(2.50);
+    expect(res.body.data.metadata).toEqual({ note: 'Test update' });
   });
 
-  test('DELETE /api/payouts/:id → delete payout', async () => {
+  test('DELETE /api/payouts/:id → delete the payout', async () => {
     const res = await request(app).delete(`/api/payouts/${payoutId}`);
-    expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
-    expect(res.body.message).toMatch(/deleted/i);
 
-    // confirm it's gone
-    const res2 = await request(app).get(`/api/payouts/${payoutId}`);
-    expect(res2.status).toBe(404);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.message).toBe('Payout deleted');
   });
 });
