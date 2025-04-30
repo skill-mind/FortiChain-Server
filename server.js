@@ -28,6 +28,7 @@ const tipsRoutes = require('./routes/tips.routes');
 const payoutRoutes = require('./routes/payout.routes');
 const transactionHistoryRoutes = require('./routes/transactionHistory.routes');
 const reportRoutes = require('./routes/report.routes');
+const notificationRoutes = require('./routes/notification.routes');
 
 // Initialize express app
 const app = express();
@@ -62,6 +63,7 @@ app.use('/api/help-requests', helpRequestRoutes);
 app.use('/api/tips', tipsRoutes);
 app.use('/api/payouts', payoutRoutes);
 app.use('/api/transaction-histories', transactionHistoryRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 app.use('/api/reports', reportRoutes);
 
