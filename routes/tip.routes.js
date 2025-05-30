@@ -2,54 +2,49 @@ const express = require('express');
 const Joi = require('joi');
 const router = express.Router();
 const { validateRequest, validateParams } = require('../middlewares/validationMiddleware');
-const { payoutSchema, updatePayoutSchema } = require('../validations/payout.validation');
-const payoutController = require('../controllers/payout.controller');
+const { tipSchema, updateTipSchema } = require('../validations/tip.validation');
+const tipController = require('../controllers/tip.controller');
 const authMiddleware = require('../middlewares/authMiddleware');
 
-// Create a new payout
+// Create a new tip
 router.post(
   '/',
   authMiddleware.requireAuth,
-  validateRequest(payoutSchema),
-  payoutController.createPayout
+  validateRequest(tipSchema),
+  tipController.createTip
 );
 
-// Get all payouts
-router.get(
-  '/',
-  authMiddleware.requireAuth,
-  payoutController.getAllPayouts
-);
+// Get all tips
+router.get('/', tipController.getAllTips);
 
-// Get payout by ID
+// Get tip by ID
 router.get(
   '/:id',
-  authMiddleware.requireAuth,
   validateParams(Joi.object({
     id: Joi.string().uuid().required()
   })),
-  payoutController.getPayoutById
+  tipController.getTipById
 );
 
-// Update payout
+// Update tip
 router.put(
   '/:id',
   authMiddleware.requireAuth,
   validateParams(Joi.object({
     id: Joi.string().uuid().required()
   })),
-  validateRequest(updatePayoutSchema),
-  payoutController.updatePayout
+  validateRequest(updateTipSchema),
+  tipController.updateTip
 );
 
-// Delete payout
+// Delete tip
 router.delete(
   '/:id',
   authMiddleware.requireAuth,
   validateParams(Joi.object({
     id: Joi.string().uuid().required()
   })),
-  payoutController.deletePayout
+  tipController.deleteTip
 );
 
-module.exports = router;
+module.exports = router; 
