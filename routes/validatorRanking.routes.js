@@ -1,15 +1,55 @@
 const express = require('express');
+const Joi = require('joi');
 const router = express.Router();
+const { validateRequest, validateParams } = require('../middlewares/validationMiddleware');
+const { validatorRankingSchema, updateValidatorRankingSchema } = require('../validations/validatorRanking.validation');
 const validatorRankingController = require('../controllers/validatorRanking.controller');
+const authMiddleware = require('../middlewares/authMiddleware');
 
-router.post('/', validatorRankingController.createRanking);
+// Create a new validator ranking
+router.post(
+  '/',
+  authMiddleware.requireAuth,
+  validateRequest(validatorRankingSchema),
+  validatorRankingController.createValidatorRanking
+);
 
-router.get('/', validatorRankingController.getAllRankings);
+// Get all validator rankings
+router.get(
+  '/',
+  authMiddleware.requireAuth,
+  validatorRankingController.getAllValidatorRankings
+);
 
-router.get('/:id', validatorRankingController.getRankingById);
+// Get validator ranking by ID
+router.get(
+  '/:id',
+  authMiddleware.requireAuth,
+  validateParams(Joi.object({
+    id: Joi.string().uuid().required()
+  })),
+  validatorRankingController.getValidatorRankingById
+);
 
-router.put('/:id', validatorRankingController.updateRanking);
+// Update validator ranking
+router.put(
+  '/:id',
+  authMiddleware.requireAuth,
+  validateParams(Joi.object({
+    id: Joi.string().uuid().required()
+  })),
+  validateRequest(updateValidatorRankingSchema),
+  validatorRankingController.updateValidatorRanking
+);
 
-router.delete('/:id', validatorRankingController.deleteRanking);
+// Delete validator ranking
+router.delete(
+  '/:id',
+  authMiddleware.requireAuth,
+  validateParams(Joi.object({
+    id: Joi.string().uuid().required()
+  })),
+  validatorRankingController.deleteValidatorRanking
+);
 
 module.exports = router; 
