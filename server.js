@@ -29,6 +29,7 @@ const profileRoutes = require('./routes/profile.routes');
 const helpRequestRoutes = require('./routes/helpRequest.routes');
 const tips = require('./routes/tips.routes');
 const reportRoutes = require('./routes/report.routes');
+const authRoutes = require("./routes/auth.routes");
 
 // Initialize express app
 const app = express();
@@ -62,6 +63,7 @@ app.use('/api', profileRoutes);
 app.use('/api/help-requests', helpRequestRoutes);
 app.use('/api/tips', tips);
 app.use('/api/reports', reportRoutes);
+app.use("/api/auth", authRoutes);
 
 // Default route
 app.get('/', (req, res) => {
