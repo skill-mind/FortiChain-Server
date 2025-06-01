@@ -10,6 +10,7 @@ const Profile = require('./profile.model');
 const HelpRequest = require('./helpRequest.model');
 const tips = require('./tips.models');
 const Report = require('./report.model');
+const Notification = require('./notification.model');
 
 // Initialize model relationships (associations)
 const initModels = () => {
@@ -60,4 +61,5 @@ module.exports = {
   HelpRequest,
   tips,
   Report,
+  Notification,
 };
