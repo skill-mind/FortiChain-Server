@@ -16,7 +16,7 @@ if (isTest) {
     logging: false
   });
 } else {
-  // Production/development database connection
+    // Production/development database connection
   sequelize = new Sequelize(
     process.env.DB_NAME || 'fortichain_db',
     process.env.DB_USER || 'fortichain_user',
