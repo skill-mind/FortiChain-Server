@@ -1,15 +1,47 @@
 const express = require('express');
 const router = express.Router();
 const validatorRankingController = require('../controllers/validatorRanking.controller');
+const { authenticate, authorize } = require('../middlewares/auth');
+const { roles } = require('../config/roles');
 
-router.post('/', validatorRankingController.createRanking);
+// Only admins and super_admins can create rankings
+router.post(
+  '/',
+  authenticate,
+  authorize(roles.ADMIN, roles.SUPER_ADMIN),
+  validatorRankingController.createRanking
+);
 
-router.get('/', validatorRankingController.getAllRankings);
+// All authenticated users can view all rankings
+router.get(
+  '/',
+  authenticate,
+  authorize(roles.USER, roles.ADMIN, roles.SUPER_ADMIN),
+  validatorRankingController.getAllRankings
+);
 
-router.get('/:id', validatorRankingController.getRankingById);
+// Authenticated users can view specific ranking by ID
+router.get(
+  '/:id',
+  authenticate,
+  authorize(roles.USER, roles.ADMIN, roles.SUPER_ADMIN),
+  validatorRankingController.getRankingById
+);
 
-router.put('/:id', validatorRankingController.updateRanking);
+// Only admins and super_admins can update rankings
+router.put(
+  '/:id',
+  authenticate,
+  authorize(roles.ADMIN, roles.SUPER_ADMIN),
+  validatorRankingController.updateRanking
+);
 
-router.delete('/:id', validatorRankingController.deleteRanking);
+// Only super_admins can delete rankings
+router.delete(
+  '/:id',
+  authenticate,
+  authorize(roles.SUPER_ADMIN),
+  validatorRankingController.deleteRanking
+);
 
-module.exports = router; 
+module.exports = router;

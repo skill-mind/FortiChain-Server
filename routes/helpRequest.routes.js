@@ -1,14 +1,39 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const helpRequestController = require('../controllers/helpRequest.controller');
+const helpRequestController = require("../controllers/helpRequest.controller");
+const { authenticate, authorize } = require("../middlewares/auth");
+const { roles } = require("../config/roles");
 
-// Public routes
-router.post('/', helpRequestController.createHelpRequest);
+// Public route: create a help request
+router.post("/", helpRequestController.createHelpRequest);
 
-// Admin routes (no auth for now)
-router.get('/', helpRequestController.getAllHelpRequests);
-router.get('/:id', helpRequestController.getHelpRequest);
-router.put('/:id', helpRequestController.updateHelpRequest);
-router.delete('/:id', helpRequestController.deleteHelpRequest);
+// Admin routes: protected
+router.get(
+  "/",
+  authenticate,
+  authorize(roles.ADMIN, roles.SUPER_ADMIN),
+  helpRequestController.getAllHelpRequests
+);
+
+router.get(
+  "/:id",
+  authenticate,
+  authorize(roles.ADMIN, roles.SUPER_ADMIN),
+  helpRequestController.getHelpRequest
+);
+
+router.put(
+  "/:id",
+  authenticate,
+  authorize(roles.ADMIN, roles.SUPER_ADMIN),
+  helpRequestController.updateHelpRequest
+);
+
+router.delete(
+  "/:id",
+  authenticate,
+  authorize(roles.SUPER_ADMIN),
+  helpRequestController.deleteHelpRequest
+);
 
 module.exports = router;

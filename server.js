@@ -24,11 +24,13 @@ const supportRoutes = require('./routes/support.routes');
 const validatorRankingRoutes = require('./routes/validatorRanking.routes');
 const profileRoutes = require('./routes/profile.routes');
 const helpRequestRoutes = require('./routes/helpRequest.routes');
+
 const tipsRoutes = require('./routes/tips.routes');
 const payoutRoutes = require('./routes/payout.routes');
 const transactionHistoryRoutes = require('./routes/transactionHistory.routes');
 const reportRoutes = require('./routes/report.routes');
 const notificationRoutes = require('./routes/notification.routes');
+const authRoutes = require("./routes/auth.routes");
 
 // Initialize express app
 const app = express();
@@ -60,12 +62,15 @@ app.use('/support', supportRoutes);
 app.use('/api/validator-rankings', validatorRankingRoutes);
 app.use('/api', profileRoutes);
 app.use('/api/help-requests', helpRequestRoutes);
+
 app.use('/api/tips', tipsRoutes);
 app.use('/api/payouts', payoutRoutes);
 app.use('/api/transaction-histories', transactionHistoryRoutes);
 app.use('/api/notifications', notificationRoutes);
 
 app.use('/api/reports', reportRoutes);
+app.use("/api/auth", authRoutes);
+
 
 // Default root route
 app.get('/', (req, res) => {

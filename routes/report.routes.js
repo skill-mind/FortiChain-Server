@@ -1,12 +1,47 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const reportController = require('../controllers/report.controller'); // Ensure this path is correct
+const reportController = require("../controllers/report.controller");
+const { authenticate, authorize } = require("../middlewares/auth");
+const { roles } = require("../config/roles");
 
-// Define routes
-router.post('/', reportController.createReport); // Create a report
-router.get('/', reportController.getReports); // Get all reports
-router.get('/:id', reportController.getReportById); // Get a report by ID
-router.put('/:id', reportController.updateReport); // Update a report
-router.delete('/:id', reportController.deleteReport); // Delete a report
+// 🛡️ Create a report (accessible to regular users)
+router.post(
+  "/",
+  authenticate,
+  authorize(roles.USER, roles.ADMIN, roles.SUPER_ADMIN),
+  reportController.createReport
+);
+
+// 🛡️ Get all reports (admin/super admin only)
+router.get(
+  "/",
+  authenticate,
+  authorize(roles.ADMIN, roles.SUPER_ADMIN),
+  reportController.getReports
+);
+
+// 🛡️ Get a report by ID (admin/super admin only)
+router.get(
+  "/:id",
+  authenticate,
+  authorize(roles.ADMIN, roles.SUPER_ADMIN),
+  reportController.getReportById
+);
+
+// 🛡️ Update a report (admin/super admin only)
+router.put(
+  "/:id",
+  authenticate,
+  authorize(roles.ADMIN, roles.SUPER_ADMIN),
+  reportController.updateReport
+);
+
+// 🛡️ Delete a report (super admin only)
+router.delete(
+  "/:id",
+  authenticate,
+  authorize(roles.SUPER_ADMIN),
+  reportController.deleteReport
+);
 
 module.exports = router;
