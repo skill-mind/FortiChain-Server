@@ -1,30 +1,55 @@
 const express = require("express");
 const UserController = require("../controllers/user.controller");
-const { validateRequest, validateParams } = require("../middlewares/validationMiddleware");
-const { user, auth, profile, settings } = require("../middlewares/validators");
-const authMiddleware = require("../middlewares/authMiddleware");
+const { validateIdParam } = require("../middlewares/validators");
+const { validationResult } = require("express-validator");
+const { authenticate, authorize } = require("../middlewares/auth");
+const { roles } = require("../config/roles");
 
 const router = express.Router();
 
-// Authentication routes
-router.post("/register", validateRequest(auth.register), UserController.register);
-router.post("/login", validateRequest(auth.login), UserController.login);
-router.post("/reset-password", validateRequest(auth.resetPassword), UserController.resetPassword);
-router.post("/change-password", authMiddleware.requireAuth, validateRequest(auth.changePassword), UserController.changePassword);
+// Suspend user – Only admin and super_admin can do this
+router.post(
+  "/:id/suspend",
+  authenticate,
+  authorize(roles.ADMIN, roles.SUPER_ADMIN),
+  validateIdParam,
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty())
+      return res.status(400).json({ errors: errors.array() });
+    next();
+  },
+  UserController.suspendUser
+);
 
-// User management routes
-router.get("/:id", validateParams({ id: user.id }), UserController.getUserById);
-router.put("/:id", authMiddleware.requireAuth, validateParams({ id: user.id }), validateRequest(user), UserController.updateUser);
-router.delete("/:id", authMiddleware.requireAuth, validateParams({ id: user.id }), UserController.deleteUser);
-router.post("/:id/suspend", authMiddleware.requireAuth, validateParams({ id: user.id }), UserController.suspendUser);
-router.post("/:id/activate", authMiddleware.requireAuth, validateParams({ id: user.id }), UserController.activateUser);
+// Get user profile – Any authenticated user can do this
+router.get(
+  "/:id",
+  authenticate,
+  authorize(roles.USER, roles.ADMIN, roles.SUPER_ADMIN),
+  validateIdParam,
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty())
+      return res.status(400).json({ errors: errors.array() });
+    next();
+  },
+  UserController.getUserProfile
+);
 
-// Profile routes
-router.get("/:id/profile", validateParams({ id: user.id }), UserController.getProfile);
-router.put("/:id/profile", authMiddleware.requireAuth, validateParams({ id: user.id }), validateRequest(profile.update), UserController.updateProfile);
-
-// Settings routes
-router.get("/:id/settings", authMiddleware.requireAuth, validateParams({ id: user.id }), UserController.getSettings);
-router.put("/:id/settings", authMiddleware.requireAuth, validateParams({ id: user.id }), validateRequest(settings.update), UserController.updateSettings);
+// Reject user profile – Only admin and super_admin
+router.post(
+  "/:id/reject-profile",
+  authenticate,
+  authorize(roles.ADMIN, roles.SUPER_ADMIN),
+  validateIdParam,
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty())
+      return res.status(400).json({ errors: errors.array() });
+    next();
+  },
+  UserController.rejectUserProfile
+);
 
 module.exports = router;

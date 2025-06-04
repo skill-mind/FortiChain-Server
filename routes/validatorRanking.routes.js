@@ -4,52 +4,47 @@ const router = express.Router();
 const { validateRequest, validateParams } = require('../middlewares/validationMiddleware');
 const { validatorRankingSchema, updateValidatorRankingSchema } = require('../validations/validatorRanking.validation');
 const validatorRankingController = require('../controllers/validatorRanking.controller');
-const authMiddleware = require('../middlewares/authMiddleware');
+const { authenticate, authorize } = require('../middlewares/auth');
+const { roles } = require('../config/roles');
 
-// Create a new validator ranking
+// Only admins and super_admins can create rankings
 router.post(
   '/',
-  authMiddleware.requireAuth,
-  validateRequest(validatorRankingSchema),
-  validatorRankingController.createValidatorRanking
+  authenticate,
+  authorize(roles.ADMIN, roles.SUPER_ADMIN),
+  validatorRankingController.createRanking
 );
 
-// Get all validator rankings
+// All authenticated users can view all rankings
 router.get(
   '/',
-  authMiddleware.requireAuth,
-  validatorRankingController.getAllValidatorRankings
+  authenticate,
+  authorize(roles.USER, roles.ADMIN, roles.SUPER_ADMIN),
+  validatorRankingController.getAllRankings
 );
 
-// Get validator ranking by ID
+// Authenticated users can view specific ranking by ID
 router.get(
   '/:id',
-  authMiddleware.requireAuth,
-  validateParams(Joi.object({
-    id: Joi.string().uuid().required()
-  })),
-  validatorRankingController.getValidatorRankingById
+  authenticate,
+  authorize(roles.USER, roles.ADMIN, roles.SUPER_ADMIN),
+  validatorRankingController.getRankingById
 );
 
-// Update validator ranking
+// Only admins and super_admins can update rankings
 router.put(
   '/:id',
-  authMiddleware.requireAuth,
-  validateParams(Joi.object({
-    id: Joi.string().uuid().required()
-  })),
-  validateRequest(updateValidatorRankingSchema),
-  validatorRankingController.updateValidatorRanking
+  authenticate,
+  authorize(roles.ADMIN, roles.SUPER_ADMIN),
+  validatorRankingController.updateRanking
 );
 
-// Delete validator ranking
+// Only super_admins can delete rankings
 router.delete(
   '/:id',
-  authMiddleware.requireAuth,
-  validateParams(Joi.object({
-    id: Joi.string().uuid().required()
-  })),
-  validatorRankingController.deleteValidatorRanking
+  authenticate,
+  authorize(roles.SUPER_ADMIN),
+  validatorRankingController.deleteRanking
 );
 
-module.exports = router; 
+module.exports = router;

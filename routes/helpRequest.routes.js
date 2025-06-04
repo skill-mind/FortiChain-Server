@@ -1,56 +1,38 @@
-const express = require('express');
-const Joi = require('joi');
+const express = require("express");
 const router = express.Router();
-const { validateRequest, validateFile, validateParams } = require('../middlewares/validationMiddleware');
-const { helpRequestSchema, updateHelpRequestSchema } = require('../validations/helpRequest.validation');
-const { pdfSchema } = require('../validations/core/file.validation');
-const helpRequestController = require('../controllers/helpRequest.controller');
-const authMiddleware = require('../middlewares/authMiddleware');
+const helpRequestController = require("../controllers/helpRequest.controller");
+const { authenticate, authorize } = require("../middlewares/auth");
+const { roles } = require("../config/roles");
 
-// Create a new help request
-router.post(
-  '/',
-  validateRequest(helpRequestSchema),
-  validateFile(pdfSchema),
-  helpRequestController.createHelpRequest
-);
+// Public route: create a help request
+router.post("/", helpRequestController.createHelpRequest);
 
-// Get all help requests
+// Admin routes: protected
 router.get(
-  '/',
-  authMiddleware.requireAuth,
+  "/",
+  authenticate,
+  authorize(roles.ADMIN, roles.SUPER_ADMIN),
   helpRequestController.getAllHelpRequests
 );
 
-// Get help request by ID
 router.get(
-  '/:id',
-  authMiddleware.requireAuth,
-  validateParams(Joi.object({
-    id: Joi.string().uuid().required()
-  })),
-  helpRequestController.getHelpRequestById
+  "/:id",
+  authenticate,
+  authorize(roles.ADMIN, roles.SUPER_ADMIN),
+  helpRequestController.getHelpRequest
 );
 
-// Update help request
 router.put(
-  '/:id',
-  authMiddleware.requireAuth,
-  validateParams(Joi.object({
-    id: Joi.string().uuid().required()
-  })),
-  validateRequest(updateHelpRequestSchema),
-  validateFile(pdfSchema),
+  "/:id",
+  authenticate,
+  authorize(roles.ADMIN, roles.SUPER_ADMIN),
   helpRequestController.updateHelpRequest
 );
 
-// Delete help request
 router.delete(
-  '/:id',
-  authMiddleware.requireAuth,
-  validateParams(Joi.object({
-    id: Joi.string().uuid().required()
-  })),
+  "/:id",
+  authenticate,
+  authorize(roles.SUPER_ADMIN),
   helpRequestController.deleteHelpRequest
 );
 

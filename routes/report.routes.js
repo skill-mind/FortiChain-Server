@@ -1,57 +1,46 @@
-const express = require('express');
-const Joi = require('joi');
+const express = require("express");
 const router = express.Router();
-const { validateRequest, validateFile, validateParams } = require('../middlewares/validationMiddleware');
-const { reportSchema, updateReportSchema } = require('../validations/report.validation');
-const { pdfSchema } = require('../validations/core/file.validation');
-const reportController = require('../controllers/report.controller');
-const authMiddleware = require('../middlewares/authMiddleware');
+const reportController = require("../controllers/report.controller");
+const { authenticate, authorize } = require("../middlewares/auth");
+const { roles } = require("../config/roles");
 
-// Create a new report
+// 🛡️ Create a report (accessible to regular users)
 router.post(
-  '/',
-  authMiddleware.requireAuth,
-  validateRequest(reportSchema),
-  validateFile(pdfSchema),
+  "/",
+  authenticate,
+  authorize(roles.USER, roles.ADMIN, roles.SUPER_ADMIN),
   reportController.createReport
 );
 
-// Get all reports
+// 🛡️ Get all reports (admin/super admin only)
 router.get(
-  '/',
-  authMiddleware.requireAuth,
-  reportController.getAllReports
+  "/",
+  authenticate,
+  authorize(roles.ADMIN, roles.SUPER_ADMIN),
+  reportController.getReports
 );
 
-// Get report by ID
+// 🛡️ Get a report by ID (admin/super admin only)
 router.get(
-  '/:id',
-  authMiddleware.requireAuth,
-  validateParams(Joi.object({
-    id: Joi.string().uuid().required()
-  })),
+  "/:id",
+  authenticate,
+  authorize(roles.ADMIN, roles.SUPER_ADMIN),
   reportController.getReportById
 );
 
-// Update report
+// 🛡️ Update a report (admin/super admin only)
 router.put(
-  '/:id',
-  authMiddleware.requireAuth,
-  validateParams(Joi.object({
-    id: Joi.string().uuid().required()
-  })),
-  validateRequest(updateReportSchema),
-  validateFile(pdfSchema),
+  "/:id",
+  authenticate,
+  authorize(roles.ADMIN, roles.SUPER_ADMIN),
   reportController.updateReport
 );
 
-// Delete report
+// 🛡️ Delete a report (super admin only)
 router.delete(
-  '/:id',
-  authMiddleware.requireAuth,
-  validateParams(Joi.object({
-    id: Joi.string().uuid().required()
-  })),
+  "/:id",
+  authenticate,
+  authorize(roles.SUPER_ADMIN),
   reportController.deleteReport
 );
 
