@@ -1,44 +1,59 @@
 const Joi = require('joi');
 
-module.exports = {
-  // Email validation
-  email: Joi.string().email().required(),
-  optionalEmail: Joi.string().email(),
+const string = {
+  // Basic string validations
+  required: Joi.string().required(),
+  optional: Joi.string().allow('', null),
 
-  // URL validation
+  // Email validations
+  email: Joi.string().email().required(),
+  optionalEmail: Joi.string().email().allow('', null),
+
+  // URL validations
   url: Joi.string().uri().required(),
-  optionalUrl: Joi.string().uri(),
+  optionalUrl: Joi.string().uri().allow('', null),
 
   // UUID validation
-  uuid: Joi.string().uuid().required().messages({
+  uuid: Joi.string().guid({ version: 'uuidv4' }).required().messages({
     'string.guid': 'Invalid UUID format'
   }),
-  optionalUuid: Joi.string().uuid(),
+  optionalUuid: Joi.string().guid({ version: 'uuidv4' }).allow('', null),
 
-  // Blockchain address validation
-  ethereumAddress: Joi.string().pattern(/^0x[a-fA-F0-9]{40}$/).required(),
-  starknetAddress: Joi.string().pattern(/^0x[a-fA-F0-9]{64}$/).required(),
-  stellarAddress: Joi.string().pattern(/^G[A-Z2-7]{55}$/).required(),
+  // Text length validations
+  shortText: (min = 1, max = 50) => Joi.string().min(min).max(max).required(),
+  optionalShortText: (min = 1, max = 50) => Joi.string().min(min).max(max).allow('', null),
+  mediumText: (min = 1, max = 200) => Joi.string().min(min).max(max).required(),
+  optionalMediumText: (min = 1, max = 200) => Joi.string().min(min).max(max).allow('', null),
+  longText: (min = 1, max = 1000) => Joi.string().min(min).max(max).required(),
+  optionalLongText: (min = 1, max = 1000) => Joi.string().min(min).max(max).allow('', null),
 
-  // Common string validations with length constraints
-  shortText: (min = 3, max = 100) => Joi.string().min(min).max(max).required(),
-  mediumText: (min = 10, max = 500) => Joi.string().min(min).max(max).required(),
-  longText: (min = 10, max = 2000) => Joi.string().min(min).max(max).required(),
-
-  // Optional text validations with length constraints
-  optionalShortText: (min = 3, max = 100) => Joi.string().min(min).max(max),
-  optionalMediumText: (min = 10, max = 500) => Joi.string().min(min).max(max),
-  optionalLongText: (min = 10, max = 2000) => Joi.string().min(min).max(max),
-
-  // Enum validations
+  // Enum validation
   enum: (values) => Joi.string().valid(...values).required().messages({
-    'any.only': 'Invalid value'
+    'any.only': 'Invalid value. Must be one of: {{#valids}}'
   }),
-  optionalEnum: (values) => Joi.string().valid(...values),
+  optionalEnum: (values) => Joi.string().valid(...values).allow('', null),
 
-  // File validation
+  // File type validation
   fileType: (types) => Joi.string().valid(...types).required().messages({
-    'any.only': 'Invalid file type'
+    'any.only': 'Invalid file type. Must be one of: {{#valids}}'
   }),
-  optionalFileType: (types) => Joi.string().valid(...types)
-}; 
+  optionalFileType: (types) => Joi.string().valid(...types).allow('', null),
+
+  // Blockchain address validations
+  ethereumAddress: Joi.string().pattern(/^0x[a-fA-F0-9]{40}$/).required().messages({
+    'string.pattern.base': 'Invalid Ethereum address format'
+  }),
+  optionalEthereumAddress: Joi.string().pattern(/^0x[a-fA-F0-9]{40}$/).allow('', null),
+
+  starknetAddress: Joi.string().pattern(/^0x[a-fA-F0-9]{64}$/).required().messages({
+    'string.pattern.base': 'Invalid Starknet address format'
+  }),
+  optionalStarknetAddress: Joi.string().pattern(/^0x[a-fA-F0-9]{64}$/).allow('', null),
+
+  stellarAddress: Joi.string().pattern(/^G[a-zA-Z0-9]{55}$/).required().messages({
+    'string.pattern.base': 'Invalid Stellar address format'
+  }),
+  optionalStellarAddress: Joi.string().pattern(/^G[a-zA-Z0-9]{55}$/).allow('', null)
+};
+
+module.exports = string; 
