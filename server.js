@@ -7,16 +7,15 @@ const morgan = require('morgan');
 const fs = require('fs');
 const path = require('path');
 
-// Load environment variables
 dotenv.config();
 
-// Import logger
 const logger = require('./utils/logger');
-
-// Import database connection
+const { requestContextMiddleware } = require('./middlewares/requestContext');
+const requestLoggerMiddleware = require('./middlewares/requestLogger');
+const { errorHandler } = require('./middlewares/errorHandler');
 const { dbConnection } = require('./models/index');
 
-// Import existing routes
+// Import routes
 const walletRoutes = require('./routes/wallet.routes');
 const projectRoutes = require('./routes/project.routes');
 const userRoutes = require('./routes/user.routes');
@@ -32,7 +31,6 @@ const reportRoutes = require('./routes/report.routes');
 const notificationRoutes = require('./routes/notification.routes');
 const authRoutes = require("./routes/auth.routes");
 
-// Initialize express app
 const app = express();
 
 // Ensure logs directory exists
@@ -41,18 +39,18 @@ if (!fs.existsSync(logDir)) {
   fs.mkdirSync(logDir);
 }
 
-// Middleware
+// Security middleware
 app.use(helmet());
 app.use(cors());
+
+// Body parsing middleware
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(morgan('combined', { stream: logger.stream }));
 
-// Request logging middleware
-app.use((req, res, next) => {
-  logger.debug(`Request received: ${req.method} ${req.originalUrl}`);
-  next();
-});
+// Request context and logging middleware
+app.use(requestContextMiddleware);
+app.use(requestLoggerMiddleware);
+app.use(morgan('combined', { stream: logger.stream }));
 
 // Mount routes
 app.use('/api/wallets', walletRoutes);
@@ -67,7 +65,6 @@ app.use('/api/tips', tipsRoutes);
 app.use('/api/payouts', payoutRoutes);
 app.use('/api/transaction-histories', transactionHistoryRoutes);
 app.use('/api/notifications', notificationRoutes);
-
 app.use('/api/reports', reportRoutes);
 app.use("/api/auth", authRoutes);
 
@@ -78,16 +75,7 @@ app.get('/', (req, res) => {
   res.send('FortiChain API is running');
 });
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  logger.error(`Error: ${err.message}`, { stack: err.stack });
-  res.status(500).json({
-    message: 'An internal server error occurred',
-    error: process.env.NODE_ENV === 'production'
-      ? {}
-      : { message: err.message, stack: err.stack },
-  });
-});
+app.use(errorHandler);
 
 module.exports = app;
 
