@@ -14,6 +14,11 @@ const { authenticate, authorize } = require("../middlewares/auth");
 const { roles } = require("../config/roles");
 
 const router = express.Router();
+const { validateRequest, validateFile, validateParams } = require('../middlewares/validationMiddleware');
+const { projectSchema, updateProjectSchema } = require('../validations/project.validation');
+const { fileSchema } = require('../validations/core/file.validation');
+const projectController = require('../controllers/project.controller');
+const authMiddleware = require('../middlewares/authMiddleware');
 
 // 🔧 Multer configuration for file uploads
 const storage = multer.diskStorage({

@@ -24,5 +24,6 @@ module.exports = {
     dialect: 'postgres',
     port: process.env.DB_PORT || 5432,
     logging: false
-  }
+  },
+  jwtSecret: process.env.JWT_SECRET || 'your-secret-key'
 };

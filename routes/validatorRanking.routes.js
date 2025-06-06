@@ -1,5 +1,8 @@
 const express = require('express');
+const Joi = require('joi');
 const router = express.Router();
+const { validateRequest, validateParams } = require('../middlewares/validationMiddleware');
+const { validatorRankingSchema, updateValidatorRankingSchema } = require('../validations/validatorRanking.validation');
 const validatorRankingController = require('../controllers/validatorRanking.controller');
 const { authenticate, authorize } = require('../middlewares/auth');
 const { roles } = require('../config/roles');
