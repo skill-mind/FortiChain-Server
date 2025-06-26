@@ -1,0 +1,29 @@
+[package]
+name = "fortichain-server"
+version = "0.1.0"
+edition = "2024"
+publish = false
+authors = [
+    "Ebube Onuora onuoraebube44@gmail.com",
+    "Abraham Ujah <abeeujah@gmail.com>",
+]
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+path = "src/main.rs"
+name = "fortichain_server"
+
+[dependencies]
+anyhow = "1.0.98"
+axum = "0.8.4"
+config = "0.15.11"
+dotenvy = "0.15.7"
+serde = { version = "1.0.219", features = ["derive"] }
+tokio = { version = "1.45.1", features = [
+    "macros",
+    "rt-multi-thread",
+    "signal",
+] }
+tower = "0.5.2"
