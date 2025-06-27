@@ -1,52 +1,58 @@
-name: CI Rust
+name: CI
 
 on:
   push:
-    branches: [ "master" ]
+    branches: ["master"]
+    paths-ignore:
+      - "README.md"
+      - Dockerfile
   pull_request:
-    branches: [ "master" ]
+    types: ["opened", "synchronize", "reopened"]
+    branches: ["master"]
+    paths-ignore:
+      - "README.md"
+      - Dockerfile
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build-and-test:
+  test:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Rust toolchain
-      uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-        override: true
-        components: rustfmt, clippy
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
 
-    - name: Cache Cargo dependencies
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          target
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-cargo-
+      - name: Run tests
+        run: cargo test --verbose
+        env:
+          PORT: 8080
+          APP_ENVIRONMENT: local
 
-    - name: Build (debug)
-      run: cargo build --verbose
+  fmt:
+    name: Rustfmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: rustfmt
+      - name: Strict formatting
+        run: cargo fmt --check
 
-    - name: Build (release)
-      run: cargo build --release --verbose
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: clippy
 
-    - name: Run tests
-      run: cargo test --verbose
-
-    - name: Run code formatting check
-      run: cargo fmt --all -- --check
-
-    - name: Run Clippy lint checks
-      run: cargo clippy --all-targets --all-features -- -D warnings
+      - name: Linting
+        run: cargo clippy -- -D warnings
