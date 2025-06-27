@@ -8,6 +8,12 @@ pub struct Configuration {
     pub app_port: u16,
 }
 
+impl Default for Configuration {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Configuration {
     pub fn new() -> Self {
         let env = env_var("APP_ENVIRONMENT")

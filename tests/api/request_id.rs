@@ -1,6 +1,6 @@
 use axum::{
     body::Body,
-    http::{HeaderValue, Request, StatusCode},
+    http::{Request, StatusCode},
 };
 use uuid::Uuid;
 
