@@ -9,7 +9,7 @@ async fn main() {
     tracing::debug!("Initializing configuration");
     let config = Configuration::new();
 
-    tracing::info!("Starting server on {config.listen_address}");
+    tracing::info!("Starting server on {}", config.listen_address);
 
     let configuration = Configuration::new();
     http::serve(configuration)
