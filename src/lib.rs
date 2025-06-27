@@ -6,5 +6,3 @@ pub mod telemetry;
 
 pub use config::*;
 pub use http::*;
-pub use middleware::*;
-pub use telemetry::*;
