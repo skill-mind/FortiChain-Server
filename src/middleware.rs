@@ -14,7 +14,7 @@ const REQUEST_ID_HEADER: &str = "x-request-id";
 pub async fn request_id_middleware(request: Request, next: Next) -> Response {
     // Try to extract existing request ID from headers
     let request_id = extract_or_generate_request_id(request.headers());
-    
+
     // Add request ID to tracing span
     let span = tracing::info_span!(
         "http_request",
@@ -22,7 +22,7 @@ pub async fn request_id_middleware(request: Request, next: Next) -> Response {
         method = %request.method(),
         uri = %request.uri(),
     );
-    
+
     // Process the request within the span context
     let response = async move {
         tracing::info!("Processing request");
@@ -30,7 +30,7 @@ pub async fn request_id_middleware(request: Request, next: Next) -> Response {
     }
     .instrument(span)
     .await;
-    
+
     // Add request ID to response headers
     add_request_id_to_response(response, &request_id)
 }

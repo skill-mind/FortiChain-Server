@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use anyhow::Context;
-use axum::{middleware, Router};
+use axum::{Router, middleware};
 use tokio::net::TcpListener;
 
 use crate::{Configuration, middleware::request_id_middleware};

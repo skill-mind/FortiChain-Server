@@ -4,7 +4,7 @@ use fortichain_server::{Configuration, http, init_tracing};
 async fn main() {
     dotenvy::dotenv().ok();
 
- // Initialize tracing
+    // Initialize tracing
     init_tracing();
 
     let configuration = Configuration::new();
