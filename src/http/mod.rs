@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 use anyhow::Context;
-use axum::Router;
+use axum::{middleware, Router};
 use tokio::net::TcpListener;
 
-use crate::Configuration;
+use crate::{Configuration, middleware::request_id_middleware};
 
 mod health_check;
 
@@ -30,5 +30,6 @@ pub async fn serve(configuration: Configuration) -> anyhow::Result<()> {
 pub fn api_router(app_state: AppState) -> Router {
     Router::new()
         .merge(health_check::router())
+        .layer(middleware::from_fn(request_id_middleware))
         .with_state(app_state)
 }
