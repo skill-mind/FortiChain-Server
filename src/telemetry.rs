@@ -10,12 +10,8 @@ pub fn setup_tracing() {
     // Default to debug if no parameter is specified in the environment.
     let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| "debug".into());
 
-    // Format logs in a readable format with newlines.
-    let formatting_layer = fmt::layer()
-        .with_ansi(true)
-        .with_target(true)
-        .with_level(true)
-        .pretty();
+    // Format logs in JSON.
+    let formatting_layer = fmt::layer().json();
 
     tracing_subscriber::registry()
         .with(env_filter)
