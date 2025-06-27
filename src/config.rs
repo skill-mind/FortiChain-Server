@@ -32,12 +32,6 @@ impl Configuration {
     }
 }
 
-impl Default for Configuration {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 // Current execution Environment Context.
 #[derive(Deserialize)]
 pub enum Environment {
@@ -62,8 +56,9 @@ impl TryFrom<String> for Environment {
             "local" => Ok(Environment::Local),
             "production" => Ok(Environment::Production),
             weird => Err(format!(
-                "{weird} is not a supported environment. \
-                Use either `local` or `production`."
+                "{} is not a supported environment. \
+                Use either `local` or `production`.",
+                weird
             )),
         }
     }
@@ -71,6 +66,6 @@ impl TryFrom<String> for Environment {
 
 pub fn env_var(name: &str) -> String {
     std::env::var(name)
-        .map_err(|e| format!("{name}: {e}"))
+        .map_err(|e| format!("{}: {}", name, e))
         .expect("Missing environment variable")
 }
