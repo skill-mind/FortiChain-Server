@@ -27,10 +27,3 @@ tokio = { version = "1.45.1", features = [
     "signal",
 ] }
 tower = "0.5.2"
-
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
-tracing-opentelemetry = "0.22"
-opentelemetry = { version = "0.21.0" }
-opentelemetry_sdk = { version = "0.30.0", default-features = false, features = ["trace"] }
-opentelemetry-stdout = { version = "0.30.0", features = ["trace", "metrics"] }
