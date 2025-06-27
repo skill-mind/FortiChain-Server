@@ -1,4 +1,4 @@
-use fortichain_server::{http, telemetry, Configuration};
+use fortichain_server::{Configuration, http, telemetry};
 
 #[tokio::main]
 async fn main() {
@@ -7,7 +7,7 @@ async fn main() {
     telemetry::setup_tracing();
 
     tracing::debug!("Initializing configuration");
-    
+
     let config = Configuration::new();
 
     tracing::debug!("Initializing DB pool");
