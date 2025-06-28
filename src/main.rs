@@ -4,6 +4,7 @@ use fortichain_server::{Configuration, http, telemetry};
 async fn main() {
     dotenvy::dotenv().ok();
 
+    // Initialize tracing
     telemetry::setup_tracing();
 
     tracing::debug!("Initializing configuration");
@@ -11,8 +12,5 @@ async fn main() {
 
     tracing::info!("Starting server on {}", config.listen_address);
 
-    let configuration = Configuration::new();
-    http::serve(configuration)
-        .await
-        .expect("Failed to start server.");
+    http::serve(config).await.expect("Failed to start server.");
 }
