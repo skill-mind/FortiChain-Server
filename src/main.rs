@@ -1,14 +1,18 @@
-use fortichain_server::{Configuration, http, init_tracing};
+use fortichain_server::{Configuration, http, telemetry};
 
 #[tokio::main]
 async fn main() {
     dotenvy::dotenv().ok();
 
     // Initialize tracing
-    init_tracing();
+    telemetry::setup_tracing();
 
-    let configuration = Configuration::new();
-    http::serve(configuration)
+    tracing::debug!("Initializing configuration");
+    let config = Configuration::new();
+
+    tracing::info!("Starting server on {}", config.listen_address);
+
+    http::serve(config)
         .await
         .expect("Failed to start server.");
 }
