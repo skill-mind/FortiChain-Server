@@ -12,7 +12,5 @@ async fn main() {
 
     tracing::info!("Starting server on {}", config.listen_address);
 
-    http::serve(config)
-        .await
-        .expect("Failed to start server.");
+    http::serve(config).await.expect("Failed to start server.");
 }
