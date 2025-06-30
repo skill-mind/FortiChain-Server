@@ -16,10 +16,7 @@ pub struct AppState {
 
 pub async fn serve(configuration: Arc<Configuration>, db: Db) -> anyhow::Result<()> {
     let addr = configuration.listen_address;
-    let app_state = AppState {
-        configuration: configuration,
-        db,
-    };
+    let app_state = AppState { configuration, db };
 
     let app = api_router(app_state);
 
