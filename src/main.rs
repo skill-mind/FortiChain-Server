@@ -1,4 +1,4 @@
-use fortichain_server::{Configuration, http, telemetry};
+use fortichain_server::{Configuration, db::Db, http, telemetry};
 
 #[tokio::main]
 async fn main() {
@@ -12,7 +12,10 @@ async fn main() {
     tracing::info!("Starting server on {}", config.listen_address);
 
     let configuration = Configuration::new();
-    http::serve(configuration)
+    let db = Db::new(&configuration)
+        .await
+        .expect("Failed to initialize DB");
+    http::serve(configuration, db)
         .await
         .expect("Failed to start server.");
 }
