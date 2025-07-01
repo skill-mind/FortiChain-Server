@@ -6,6 +6,11 @@ use anyhow::Context;
 use axum::Router;
 use tokio::{net::TcpListener, signal};
 
+use crate::{
+    Configuration,
+    middleware::{propagate_request_id_layer, request_id_layer},
+};
+
 mod health_check;
 
 #[derive(Clone)]
@@ -30,6 +35,8 @@ pub async fn serve(configuration: Arc<Configuration>, db: Db) -> anyhow::Result<
 pub fn api_router(app_state: AppState) -> Router {
     Router::new()
         .merge(health_check::router())
+        .layer(propagate_request_id_layer())
+        .layer(request_id_layer())
         .with_state(app_state)
 }
 

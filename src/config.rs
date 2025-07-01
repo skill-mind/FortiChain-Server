@@ -15,6 +15,12 @@ pub struct Configuration {
     pub max_db_connections: u32,
 }
 
+impl Default for Configuration {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Configuration {
     pub fn new() -> Config {
         let env = env_var("APP_ENVIRONMENT")
@@ -35,6 +41,7 @@ impl Configuration {
             env,
             listen_address,
             app_port,
+
             database_url,
             max_db_connections,
         })
