@@ -1,0 +1,39 @@
+# Ignore build artifacts and cache
+target/
+!target/release/fortichain_server
+
+# Ignore development files
+.git/
+.gitignore
+README.md
+*.md
+
+# Ignore IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Ignore temporary files
+tmp/
+temp/
+.tmp/
+
+# Ignore logs
+*.log
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore environment files (these should be set via container env vars)
+.env
+.env.local
+.env.*.local
+
+# Ignore Docker files in the build context (we're already building)
+Dockerfile*
+docker-compose*.yml
+
+# Ignore documentation
+docs/
