@@ -1,4 +1,4 @@
-use crate::Configuration;
+use anyhow::Result;
 use sqlx::{
     Error,
     postgres::{PgPool, PgPoolOptions},
@@ -12,10 +12,10 @@ pub struct Db {
 
 impl Db {
     // Initialize a DB connection and return the Pool.
-    pub async fn new(config: &Configuration) -> Result<Self, Error> {
+    pub async fn new(db_str: &str, max_pool_size: u32) -> Result<Self> {
         let pool = PgPoolOptions::new()
-            .max_connections(config.max_db_connections)
-            .connect(&config.database_url)
+            .max_connections(max_pool_size)
+            .connect(db_str)
             .await?;
         Ok(Db { pool })
     }
@@ -23,6 +23,12 @@ impl Db {
     // executes a simple SELECT 1 query to verify database connectivity
     pub async fn ping_db(pool: &PgPool) -> Result<(), Error> {
         sqlx::query("SELECT 1").execute(pool).await?;
+        Ok(())
+    }
+
+    // Run DB migrations
+    pub async fn migrate(&self) -> Result<()> {
+        sqlx::migrate!("./migrations").run(&self.pool).await?;
         Ok(())
     }
 }

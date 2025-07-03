@@ -9,13 +9,13 @@ use sqlx::Row;
 #[tokio::test]
 async fn test_health_check_ok() {
     let app = TestApp::new().await;
-    let pool = &app.pool;
+    let db = &app.db;
 
     // Create a test table
     sqlx::query(
         "CREATE TABLE IF NOT EXISTS test_items (id SERIAL PRIMARY KEY, name TEXT NOT NULL)",
     )
-    .execute(pool)
+    .execute(&db.pool)
     .await
     .expect("Failed to create test table");
 
@@ -23,7 +23,7 @@ async fn test_health_check_ok() {
     let name = "Test Item";
     let row = sqlx::query("INSERT INTO test_items (name) VALUES ($1) RETURNING id")
         .bind(name)
-        .fetch_one(pool)
+        .fetch_one(&db.pool)
         .await
         .expect("Failed to insert item");
     let id: i32 = row.get("id");
@@ -31,7 +31,7 @@ async fn test_health_check_ok() {
     // Retrieve the item
     let retrieved = sqlx::query("SELECT name FROM test_items WHERE id = $1")
         .bind(id)
-        .fetch_one(pool)
+        .fetch_one(&db.pool)
         .await
         .expect("Failed to retrieve item");
     let retrieved_name: String = retrieved.get("name");
@@ -42,7 +42,7 @@ async fn test_health_check_ok() {
 
     // Clean up
     sqlx::query("DROP TABLE test_items")
-        .execute(pool)
+        .execute(&db.pool)
         .await
         .expect("Failed to clean up");
 

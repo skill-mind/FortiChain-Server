@@ -6,16 +6,19 @@ async fn main() {
 
     telemetry::setup_tracing();
 
-    tracing::debug!("Initializing configuration");
+    tracing::info!("Initializing configuration");
     let config = Configuration::new();
 
-    tracing::info!("Starting server on {}", config.listen_address);
-
-    let configuration = Configuration::new();
-    let db = Db::new(&configuration)
+    tracing::info!("Initializing DB pool");
+    let db = Db::new(&config.database_url, config.max_db_connections)
         .await
         .expect("Failed to initialize DB");
-    http::serve(configuration, db)
+
+    tracing::info!("Running Migrations");
+    db.migrate().await.expect("Failed to run migrations");
+
+    tracing::info!("Starting server");
+    http::serve(config, db)
         .await
         .expect("Failed to start server.");
 }
