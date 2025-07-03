@@ -1,7 +1,7 @@
-use axum::http::header::WWW_AUTHENTICATE;
-use axum::http::StatusCode;
-use axum::response::{IntoResponse, Response};
 use axum::Json;
+use axum::http::StatusCode;
+use axum::http::header::WWW_AUTHENTICATE;
+use axum::response::{IntoResponse, Response};
 use std::borrow::Cow;
 use std::collections::HashMap;
 use thiserror::Error;
@@ -37,7 +37,10 @@ impl Error {
     {
         let mut error_map = HashMap::new();
         for (key, val) in errors {
-            error_map.entry(key.into()).or_insert_with(Vec::new).push(val.into());
+            error_map
+                .entry(key.into())
+                .or_insert_with(Vec::new)
+                .push(val.into());
         }
         Self::UnprocessableEntity { errors: error_map }
     }
@@ -62,13 +65,12 @@ impl IntoResponse for Error {
                 }
                 (StatusCode::UNPROCESSABLE_ENTITY, Json(Errors { errors })).into_response()
             }
-            Self::Unauthorized => {
-                (
-                    self.status_code(),
-                    [(WWW_AUTHENTICATE, "Token")],
-                    self.to_string(),
-                ).into_response()
-            }
+            Self::Unauthorized => (
+                self.status_code(),
+                [(WWW_AUTHENTICATE, "Token")],
+                self.to_string(),
+            )
+                .into_response(),
             _ => (self.status_code(), self.to_string()).into_response(),
         }
     }
