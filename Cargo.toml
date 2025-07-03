@@ -33,3 +33,4 @@ tower-http = { version = "0.6.1", features = [
     "trace",
 ] }
 tracing = "0.1.40"
+uuid = { version = "1.17.0", features = ["v7"] }

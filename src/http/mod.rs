@@ -20,6 +20,7 @@ pub async fn serve(configuration: Arc<Configuration>, db: Db) -> anyhow::Result<
 
     let app = api_router(app_state);
 
+    tracing::info!("Listening for requests on {}", addr);
     let listener = TcpListener::bind(addr).await?;
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
