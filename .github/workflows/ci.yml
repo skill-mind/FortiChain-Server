@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  push:
+    branches: ["master"]
+    paths-ignore:
+      - "README.md"
+      - Dockerfile
+  pull_request:
+    types: ["opened", "synchronize", "reopened"]
+    branches: ["master"]
+    paths-ignore:
+      - "README.md"
+      - Dockerfile
+
+env:
+  CARGO_TERM_COLOR: always
+  DATABASE_URL: "postgres://postgres:password@0.0.0.0:5432/fortichain"
+  DB_MAX_CONNECTIONS: "50"
+  SQLX_VERSION: "0.8.6"
+  SQLX_FEATURES: "rustls,postgres"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: fortichain
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust Toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: Install SQLX-CLI
+        run: cargo install sqlx-cli
+          --version=${{ env.SQLX_VERSION }}
+          --features ${{ env.SQLX_FEATURES }}
+          --no-default-features
+          --locked
+
+      - name: Set executable permissions
+        run: chmod +x ./scripts/init_db.sh
+
+      - name: Migrate DB
+        run: |
+          SKIP_DOCKER=true ./scripts/init_db.sh
+
+      - name: Run tests
+        run: cargo test --verbose
+        env:
+          PORT: 8080
+          APP_ENVIRONMENT: local
+          DB_MAX_CONNECTIONS: 50
+          DATABASE_NAME: fortichain
+
+      - name: Fresh queries
+        run: cargo sqlx prepare
+
+  fmt:
+    name: Rustfmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: rustfmt
+      - name: Strict formatting
+        run: cargo fmt --check
+
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    env:
+      SQLX_OFFLINE: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: clippy
+
+      - name: Linting
+        run: cargo clippy -- -D warnings

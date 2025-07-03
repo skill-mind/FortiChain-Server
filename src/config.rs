@@ -1,33 +1,54 @@
 use serde::Deserialize;
-use std::net::{Ipv6Addr, SocketAddr};
+use std::{
+    net::{Ipv6Addr, SocketAddr},
+    sync::Arc,
+};
 
-#[derive(Deserialize)]
+// Type alias for thread safe app configuration.
+pub type Config = Arc<Configuration>;
+#[derive(Deserialize, Clone)]
 pub struct Configuration {
     pub env: Environment,
     pub listen_address: SocketAddr,
     pub app_port: u16,
+    pub database_url: String,
+    pub max_db_connections: u32,
 }
 
 impl Configuration {
-    pub fn new() -> Self {
+    pub fn new() -> Config {
         let env = env_var("APP_ENVIRONMENT")
             .try_into()
             .expect("APP_ENVIRONMENT is invalid or not specified.");
         let app_port = env_var("PORT").parse::<u16>().expect(
             "PORT is invalid or not specified. Please specify a valid unsigned 16-bit integer",
         );
+
+        let database_url = env_var("DATABASE_URL");
+        let max_db_connections = env_var("DB_MAX_CONNECTIONS")
+            .parse::<u32>()
+            .expect("DB_MAX_CONNECTIONS is invalid or not specified.");
+
         let listen_address = SocketAddr::from((Ipv6Addr::UNSPECIFIED, app_port));
 
-        Configuration {
+        // Configuration values to be safely shared across requests.
+        Arc::new(Configuration {
             env,
             listen_address,
             app_port,
-        }
+            database_url,
+            max_db_connections,
+        })
+    }
+
+    // DB String
+    pub fn set_db_str(&mut self, db_str: String) {
+        self.database_url = db_str;
     }
 }
 
 // Current execution Environment Context.
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub enum Environment {
     Local,
     Production,
@@ -50,9 +71,8 @@ impl TryFrom<String> for Environment {
             "local" => Ok(Environment::Local),
             "production" => Ok(Environment::Production),
             weird => Err(format!(
-                "{} is not a supported environment. \
-                Use either `local` or `production`.",
-                weird
+                "{weird} is not a supported environment. \
+                Use either `local` or `production`."
             )),
         }
     }
@@ -60,6 +80,6 @@ impl TryFrom<String> for Environment {
 
 pub fn env_var(name: &str) -> String {
     std::env::var(name)
-        .map_err(|e| format!("{}: {}", name, e))
+        .map_err(|e| format!("{name}: {e}"))
         .expect("Missing environment variable")
 }
