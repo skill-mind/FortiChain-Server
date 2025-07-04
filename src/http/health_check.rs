@@ -8,7 +8,7 @@ pub(crate) fn router() -> Router<AppState> {
 
 #[tracing::instrument(name = "Health Check", skip(state))]
 async fn ping_handler(state: axum::extract::State<AppState>) -> axum::http::StatusCode {
-    match Db::ping_db(&state.db.pool).await {
+    match state.db.ping_db().await {
         Ok(_) => StatusCode::OK,
         Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
     }

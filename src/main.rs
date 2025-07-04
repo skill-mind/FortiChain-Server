@@ -10,7 +10,7 @@ async fn main() {
     let config = Configuration::new();
 
     tracing::info!("Initializing DB pool");
-    let db = Db::new(&config.database_url, config.max_db_connections)
+    let db = Db::new(&config.database_url, config.max_db_connections, config.database_type.clone())
         .await
         .expect("Failed to initialize DB");
 
