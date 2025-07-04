@@ -7,6 +7,7 @@ use axum::Router;
 use tokio::{net::TcpListener, signal};
 
 mod health_check;
+pub mod reports;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -28,10 +29,11 @@ pub async fn serve(configuration: Arc<Configuration>, db: Db) -> anyhow::Result<
         .context("error running HTTP server.")
 }
 
-pub fn api_router(app_state: AppState) -> Router {
+pub fn api_router(state: AppState) -> Router {
     Router::new()
         .merge(health_check::router())
-        .with_state(app_state)
+        .merge(reports::router())
+        .with_state(state)
 }
 
 async fn shutdown_signal() {
