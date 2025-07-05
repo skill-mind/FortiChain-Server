@@ -19,8 +19,8 @@ async fn open_ticket_handler(
     // Validate the payload
     let subject_len = payload.subject.trim().len();
     let message_len = payload.message.trim().len();
-    if !(5..=100).contains(&subject_len)
-        || !(10..=5000).contains(&message_len)
+    if !(5..=99).contains(&subject_len)
+        || !(10..=4999).contains(&message_len)
         || payload.opened_by.trim().is_empty()
     {
         return StatusCode::BAD_REQUEST;
