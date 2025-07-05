@@ -18,6 +18,8 @@ pub(crate) fn router() -> Router<AppState> {
 #[derive(Debug, Deserialize)]
 pub struct ListReportsQuery {
     status: Option<String>,
+    limit: Option<i64>,
+    offset: Option<i64>,
 }
 
 #[derive(Debug, Serialize, FromRow)]
@@ -90,6 +92,17 @@ async fn list_reports(
             }
 
             query_str.push_str(" ORDER BY created_at DESC");
+
+            if let Some(limit) = query.limit {
+                query_str.push_str(" LIMIT $3");
+                params.push(limit.to_string());
+            }
+
+            if let Some(offset) = query.offset {
+                query_str.push_str(" OFFSET $4");
+                params.push(offset.to_string());
+            }
+
             (query_str, params)
         }
         crate::db::DbPool::Sqlite(_) => {
@@ -106,6 +119,17 @@ async fn list_reports(
             }
 
             query_str.push_str(" ORDER BY created_at DESC");
+
+            if let Some(limit) = query.limit {
+                query_str.push_str(" LIMIT ?");
+                params.push(limit.to_string());
+            }
+
+            if let Some(offset) = query.offset {
+                query_str.push_str(" OFFSET ?");
+                params.push(offset.to_string());
+            }
+
             (query_str, params)
         }
     };

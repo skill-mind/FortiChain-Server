@@ -317,6 +317,34 @@ async fn test_list_reports() {
     
     assert_eq!(reports.len(), 0);
 
+    // Test 7: Pagination - limit 1, offset 0
+    let req = Request::get(&format!("/api/projects/{}/reports?limit=1&offset=0", project_id))
+        .body(Body::empty())
+        .unwrap();
+    let res = app.request(req).await;
+
+    assert_eq!(res.status(), StatusCode::OK);
+
+    let body = to_bytes(res.into_body(), MAX_BODY_SIZE).await.unwrap();
+    let reports: Vec<serde_json::Value> = serde_json::from_slice(&body).unwrap();
+
+    assert_eq!(reports.len(), 1);
+    assert_eq!(reports[0]["id"], json!(report_ids[0].to_string()));
+
+    // Test 8: Pagination - limit 1, offset 1
+    let req = Request::get(&format!("/api/projects/{}/reports?limit=1&offset=1", project_id))
+        .body(Body::empty())
+        .unwrap();
+    let res = app.request(req).await;
+
+    assert_eq!(res.status(), StatusCode::OK);
+
+    let body = to_bytes(res.into_body(), MAX_BODY_SIZE).await.unwrap();
+    let reports: Vec<serde_json::Value> = serde_json::from_slice(&body).unwrap();
+
+    assert_eq!(reports.len(), 1);
+    assert_eq!(reports[0]["id"], json!(report_ids[1].to_string()));
+
     // Clean up
     match db.pool() {
         DbPool::Sqlite(pool) => {
