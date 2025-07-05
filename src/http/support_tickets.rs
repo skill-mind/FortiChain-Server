@@ -11,6 +11,7 @@ pub(crate) fn router() -> Router<AppState> {
     //   .route("/unassign_ticket", post(unassign_ticket_handler))
 }
 
+#[tracing::instrument(skip(state, payload))]
 async fn open_ticket_handler(
     state: State<AppState>,
     Json(payload): Json<OpenSupportTicketRequest>,
@@ -24,6 +25,8 @@ async fn open_ticket_handler(
     {
         return StatusCode::BAD_REQUEST;
     }
+
+    tracing::info!(opened_by = %payload.opened_by, subject = %payload.subject, "Attempting to create a support ticket");
 
     // Check if the user exists in the escrow_users table
     let db = &state.db;
@@ -41,18 +44,18 @@ async fn open_ticket_handler(
         Ok(row) => match row.try_get::<bool, _>(0) {
             Ok(val) => val,
             Err(e) => {
-                eprintln!("Failed to extract boolean from row: {:?}", e);
+                tracing::error!("Failed to extract boolean from row: {:?}", e);
                 return StatusCode::INTERNAL_SERVER_ERROR;
             }
         },
         Err(e) => {
-            eprintln!("Failed to check user existence: {:?}", e);
+            tracing::error!("Failed to check user existence: {:?}", e);
             return StatusCode::INTERNAL_SERVER_ERROR;
         }
     };
 
     if !user_exists {
-        eprintln!("User does not exist in escrow_users table");
+        tracing::error!("User does not exist in escrow_users table");
         return StatusCode::BAD_REQUEST;
     }
 
@@ -80,7 +83,7 @@ async fn open_ticket_handler(
         )
         .await
     {
-        eprintln!("Failed to insert ticket: {:?}", e);
+        tracing::error!("Failed to insert ticket: {:?}", e);
         return StatusCode::INTERNAL_SERVER_ERROR;
     }
 
