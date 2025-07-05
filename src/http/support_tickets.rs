@@ -1,15 +1,14 @@
-use axum::{extract::State, Router, http::StatusCode, routing::{get, post}, Json};
-use sqlx::prelude::*; // Import Executor trait
+use axum::{Json, Router, extract::State, http::StatusCode, routing::post};
+use sqlx::prelude::*;
 
+use super::types::OpenSupportTicketRequest;
 use crate::AppState;
-use crate::db::Db;
-use super::types::{OpenSupportTicketRequest, SupportTicket};
 
 pub(crate) fn router() -> Router<AppState> {
     Router::new().route("/open_ticket", post(open_ticket_handler))
-                //   .route("/close_ticket", post(close_ticket_handler))
-                //   .route("/assign_ticket", post(assign_ticket_handler))
-                //   .route("/unassign_ticket", post(unassign_ticket_handler))
+    //   .route("/close_ticket", post(close_ticket_handler))
+    //   .route("/assign_ticket", post(assign_ticket_handler))
+    //   .route("/unassign_ticket", post(unassign_ticket_handler))
 }
 
 async fn open_ticket_handler(
@@ -17,7 +16,12 @@ async fn open_ticket_handler(
     Json(payload): Json<OpenSupportTicketRequest>,
 ) -> axum::http::StatusCode {
     // Validate the payload
-    if payload.subject.is_empty() || payload.message.is_empty() || payload.opened_by.is_empty() {
+    let subject_len = payload.subject.trim().len();
+    let message_len = payload.message.trim().len();
+    if !(5..=100).contains(&subject_len)
+        || !(10..=5000).contains(&message_len)
+        || payload.opened_by.trim().is_empty()
+    {
         return StatusCode::BAD_REQUEST;
     }
 
@@ -29,7 +33,11 @@ async fn open_ticket_handler(
         )
     "#;
 
-    let user_exists: bool = match db.pool.fetch_one(sqlx::query(user_exists_query).bind(&payload.opened_by)).await {
+    let user_exists: bool = match db
+        .pool
+        .fetch_one(sqlx::query(user_exists_query).bind(&payload.opened_by))
+        .await
+    {
         Ok(row) => match row.try_get::<bool, _>(0) {
             Ok(val) => val,
             Err(e) => {
@@ -47,28 +55,34 @@ async fn open_ticket_handler(
         eprintln!("User does not exist in escrow_users table");
         return StatusCode::BAD_REQUEST;
     }
-    
-
 
     // Logic to open a ticket
     let db = &state.db;
     let query = r#"
-        INSERT INTO request_tickets (
+        INSERT INTO request_ticket (
             subject,
             message,
-            opened_by
-        ) VALUES ($1, $2, $3)
+            opened_by,
+            status,
+            response_subject
+        ) VALUES ($1, $2, $3, $4::ticket_status_type, $5)
     "#;
 
-    if let Err(e) = db.pool.execute(sqlx::query(query)
-        .bind(payload.subject)
-        .bind(payload.message)
-        .bind(payload.opened_by)
-    ).await {
+    if let Err(e) = db
+        .pool
+        .execute(
+            sqlx::query(query)
+                .bind(payload.subject.clone())
+                .bind(payload.message)
+                .bind(payload.opened_by)
+                .bind("open")
+                .bind(payload.subject),
+        )
+        .await
+    {
         eprintln!("Failed to insert ticket: {:?}", e);
         return StatusCode::INTERNAL_SERVER_ERROR;
     }
-    
 
     StatusCode::CREATED
 }

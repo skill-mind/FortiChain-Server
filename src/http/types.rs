@@ -1,5 +1,4 @@
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use sqlx::FromRow;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OpenSupportTicketRequest {
