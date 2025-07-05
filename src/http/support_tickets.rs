@@ -23,6 +23,11 @@ async fn open_ticket_handler(
         || !(10..=4999).contains(&message_len)
         || payload.opened_by.trim().is_empty()
     {
+        tracing::error!(
+            subject_len = subject_len,
+            message_len = message_len,
+            "Invalid payload"
+        );
         return StatusCode::BAD_REQUEST;
     }
 
