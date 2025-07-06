@@ -32,8 +32,26 @@ pub struct Transaction {
     pub updated_at: f64,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DepositRequest {
+    user_wallet: String,
+    project_id: String,
+    amount: u128,
+    currency: String,
+    notes: Option<String>,
+    transaction_hash: String
+}
 
 pub struct TransactionService {
     db: PgPool
+}
+
+impl TransactionService {
+    pub fn new(db: PgPool) -> Self{
+        Self {db}
+    } 
+    pub fn deposit_funds(&self, deposit_info: DepositRequest) -> Transaction {
+
+    }   
 }
 
