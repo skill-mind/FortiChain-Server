@@ -5,13 +5,6 @@ use sqlx::{
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
-
-#[derive(thiserror::Error, Debug)]
-pub enum EscrowError {
-    #[error("Database error: {0}")]
-    DatabaseError(#[from] sqlx::Error),
-}
-
 pub struct EscrowUsers {
     wallet_address: String,
     balance: f64,
@@ -31,7 +24,7 @@ impl EscrowService{
     }
 
     // Create or get existing escrow account for user
-    pub async fn get_or_create_escrow_users(&self, user_wallet: String) -> Result<EscrowUsers, EscrowError> {
+    pub async fn get_or_create_escrow_users(&self, user_wallet: String) -> Result<EscrowUsers, ServiceError> {
         // First, try to get existing account
         let existing_account = query_as::<_, EscrowUsers>(
             "
