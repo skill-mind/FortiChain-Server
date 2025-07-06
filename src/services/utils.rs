@@ -1,6 +1,6 @@
-use serde::Serialize;
 use axum::{Json, http::StatusCode};
-
+use serde::Serialize;
+use std::time::SystemTimeError;
 
 #[derive(Debug, Serialize)]
 pub struct ErrorResponse {
@@ -12,6 +12,8 @@ pub struct ErrorResponse {
 pub enum ServiceError {
     #[error("Database error: {0}")]
     DatabaseError(#[from] sqlx::Error),
+    #[error("System Time Error: {0}")]
+    SystemTimeError(#[from] SystemTimeError),
 }
 
 impl From<ServiceError> for (StatusCode, Json<ErrorResponse>) {
@@ -21,7 +23,12 @@ impl From<ServiceError> for (StatusCode, Json<ErrorResponse>) {
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "database_error",
                 "Internal server error occurred",
-            )
+            ),
+            ServiceError::SystemTimeError(_) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "system_time_error",
+                "Time went backwards",
+            ),
         };
 
         (

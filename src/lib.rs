@@ -3,8 +3,8 @@ pub mod db;
 pub mod error;
 pub mod http;
 pub mod middleware;
-pub mod telemetry;
 pub mod services;
+pub mod telemetry;
 
 pub use config::*;
 pub use error::*;

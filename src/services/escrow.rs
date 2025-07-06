@@ -1,30 +1,29 @@
-use sqlx::{
-    query_as,
-    postgres::{PgPool},
-};
+use sqlx::{postgres::PgPool, query_as};
 
+use crate::services::utils::ServiceError;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub struct EscrowUsers {
-    wallet_address: String,
-    balance: f64,
-    created_at: f64,
-    updated_at: f64
+    pub wallet_address: String,
+    pub balance: u128,
+    pub created_at: f64,
+    pub updated_at: f64,
 }
-
 
 pub struct EscrowService {
-    db: PgPool
+    pub db: PgPool,
 }
 
-
-impl EscrowService{
+impl EscrowService {
     pub fn new(db: PgPool) -> Self {
         Self { db }
     }
 
     // Create or get existing escrow account for user
-    pub async fn get_or_create_escrow_users(&self, user_wallet: String) -> Result<EscrowUsers, ServiceError> {
+    pub async fn get_or_create_escrow_users(
+        &self,
+        user_wallet: String,
+    ) -> Result<EscrowUsers, ServiceError> {
         // First, try to get existing account
         let existing_account = query_as::<_, EscrowUsers>(
             "
@@ -42,11 +41,9 @@ impl EscrowService{
         }
 
         // Create new account if it doesn't exist
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("Time went backwards").as_secs_f64();
-        
-        let new_account  = sqlx::query_as!(
+        let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs_f64();
+
+        let new_account = sqlx::query_as!(
             EscrowUsers,
             r#"
             INSERT INTO escrow_users (wallet_address, balance, created_at, updated_at)
@@ -54,7 +51,7 @@ impl EscrowService{
             RETURNING wallet_address, balance, created_at, updated_at
             "#,
             user_wallet.clone(),
-            0.0,
+            0,
             now,
             now
         )
