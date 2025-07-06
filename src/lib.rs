@@ -4,6 +4,7 @@ pub mod error;
 pub mod http;
 pub mod middleware;
 pub mod telemetry;
+pub mod services;
 
 pub use config::*;
 pub use error::*;
