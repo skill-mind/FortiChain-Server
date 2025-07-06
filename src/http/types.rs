@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OpenSupportTicketRequest {
@@ -22,4 +23,10 @@ pub struct SupportTicket {
     pub created_at: String,
     pub resolved_at: Option<String>,
     pub updated_at: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AssignSupportTicketRequest {
+    pub ticket_id: Uuid,
+    pub support_agent_wallet: String,
 }
