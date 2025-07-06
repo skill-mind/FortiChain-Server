@@ -3,6 +3,9 @@ use sqlx::{
     postgres::{PgPool},
 };
 
+use std::time::{SystemTime, UNIX_EPOCH};
+
+
 #[derive(thiserror::Error, Debug)]
 pub enum EscrowError {
     #[error("Database error: {0}")]
@@ -19,4 +22,52 @@ pub struct EscrowUsers {
 
 pub struct EscrowService {
     db: PgPool
+}
+
+
+impl EscrowService{
+    pub fn new(db: PgPool) -> Self {
+        Self { db }
+    }
+
+    // Create or get existing escrow account for user
+    pub async fn get_or_create_escrow_users(&self, user_wallet: String) -> Result<EscrowUsers, EscrowError> {
+        // First, try to get existing account
+        let existing_account = query_as::<_, EscrowUsers>(
+            "
+            SELECT wallet_address, balance, created_at, updated_at
+            FROM escrow_users
+            WHERE wallet_address = $1
+            ",
+        )
+        .bind(user_wallet)
+        .fetch_optional(&self.db)
+        .await?;
+
+        if let Some(account) = existing_account {
+            return Ok(account);
+        }
+
+        // Create new account if it doesn't exist
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("Time went backwards").as_secs_f64();
+        
+        let new_account  = sqlx::query_as!(
+            EscrowUsers,
+            r#"
+            INSERT INTO escrow_users (wallet_address, balance, created_at, updated_at)
+            VALUES ($1, $2, $3, $4,)
+            RETURNING wallet_address, balance, created_at, updated_at
+            "#,
+            user_wallet.clone(),
+            0.0,
+            now,
+            now
+        )
+        .fetch_one(&self.db)
+        .await?;
+
+        Ok(new_account)
+    }
 }
