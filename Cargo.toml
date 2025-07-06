@@ -18,8 +18,11 @@ name = "fortichain_server"
 [dependencies]
 anyhow = "1.0.98"
 axum = "0.8.4"
+bigdecimal = { version = "0.4", features = ["serde"] }
+chrono = { version = "0.4", features = ["serde"] }
 config = "0.15.11"
 dotenvy = "0.15.7"
+num-traits = "0.2"
 serde = { version = "1.0.219", features = ["derive"] }
 tokio = { version = "1.45.1", features = [
     "macros",
@@ -27,13 +30,7 @@ tokio = { version = "1.45.1", features = [
     "signal",
 ] }
 tower = "0.5.2"
-sqlx = { version = "0.8.6", features = [
-    "runtime-tokio-rustls",
-    "postgres",
-    "macros",
-    "uuid",
-    "chrono",
-] }
+sqlx = { version = "0.8.6", features = ["runtime-tokio-rustls", "postgres", "macros", "bigdecimal", "chrono", "uuid"] }
 thiserror = "1.0"
 log = "0.4"
 tracing = "0.1.40"
