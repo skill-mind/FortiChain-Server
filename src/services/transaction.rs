@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use std::time::{SystemTime, UNIX_EPOCH};
-use uuid::Uuid;
 
 use crate::services::escrow::EscrowService;
 use crate::services::utils::ServiceError;
