@@ -1,3 +1,4 @@
+// src/http/mod.rs
 use std::sync::Arc;
 
 use crate::Config;
@@ -7,6 +8,7 @@ use axum::Router;
 use tokio::{net::TcpListener, signal};
 
 mod health_check;
+mod projects; 
 
 #[derive(Clone)]
 pub struct AppState {
@@ -16,7 +18,10 @@ pub struct AppState {
 
 pub async fn serve(configuration: Arc<Configuration>, db: Db) -> anyhow::Result<()> {
     let addr = configuration.listen_address;
-    let app_state = AppState { configuration, db };
+    let app_state = AppState { 
+        configuration: configuration.clone(), 
+        db 
+    };
 
     let app = api_router(app_state);
 
@@ -31,6 +36,7 @@ pub async fn serve(configuration: Arc<Configuration>, db: Db) -> anyhow::Result<
 pub fn api_router(app_state: AppState) -> Router {
     Router::new()
         .merge(health_check::router())
+        .merge(projects::router()) // Add this line
         .with_state(app_state)
 }
 
