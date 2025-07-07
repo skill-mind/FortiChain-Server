@@ -5,7 +5,9 @@ use super::types::{OpenSupportTicketRequest, ResolveSupportTicketRequest};
 use crate::AppState;
 
 pub(crate) fn router() -> Router<AppState> {
-    Router::new().route("/open_ticket", post(open_ticket_handler))
+    Router::new()
+        .route("/open_ticket", post(open_ticket_handler))
+        .route("resolve_ticket", post(resolve_ticket_handler))
     //   .route("/close_ticket", post(close_ticket_handler))
     //   .route("/assign_ticket", post(assign_ticket_handler))
     //   .route("/unassign_ticket", post(unassign_ticket_handler))
@@ -205,7 +207,7 @@ async fn resolve_ticket_handler(
             resolved_by = %payload.resolved_by,
             "Support Ticket Resolve Successfully"
             );
-            StatusCode::Ok();
+            StatusCode::OK
         }
         Err(e) => {
             tracing::error!("Failed to resolve ticket: {:?}", e);
