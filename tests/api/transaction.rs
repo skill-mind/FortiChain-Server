@@ -9,11 +9,11 @@ use time::{Duration, OffsetDateTime};
 
 // Helpers
 async fn create_project(db: &PgPool) -> Result<String, sqlx::Error> {
-    let owner_address = "0x123456789qwertyuioppp";
-    let contract_address = "0x12233445566778899qqweeerry";
+    let owner_address = "0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+    let contract_address = "0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
     let name = "Test Project";
     let description = "This is just a test project";
-    let contact_info = "008811223344";
+    let contact_info = "tester@tester.test";
     let supporting_document_path = "https://path-to-docs.document";
     let project_logo_path = "https://path-to-logo.document";
     let repository_url = "https://path-to-repo.document";
@@ -48,7 +48,9 @@ async fn create_project(db: &PgPool) -> Result<String, sqlx::Error> {
     Ok(id)
 }
 #[tokio::test]
-async fn test_deposit_successful_with_no_escrow_users() {}
+async fn test_deposit_successful_with_no_escrow_users() {
+
+}
 
 #[tokio::test]
 async fn test_deposit_successful_with_escrow_users_available() {
