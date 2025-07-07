@@ -12,7 +12,7 @@ pub(crate) fn router() -> Router<AppState> {
     //   .route("/unassign_ticket", post(unassign_ticket_handler))
 }
 
-#[tracing::instrument(skip(state, payload))]
+#[tracing::instrument(name = "open_ticket_handler", skip(state, payload))]
 async fn open_ticket_handler(
     state: State<AppState>,
     Json(payload): Json<OpenSupportTicketRequest>,
@@ -96,13 +96,14 @@ async fn open_ticket_handler(
     StatusCode::CREATED
 }
 
-#[tracing::instrument(skip(state, payload))]
+#[tracing::instrument(name = "assign_ticket_handler", skip(state, payload))]
 pub async fn assign_ticket_handler(
     state: State<AppState>,
     Json(payload): Json<AssignSupportTicketRequest>,
 ) -> StatusCode {
     let db = &state.db;
     // 1. Check ticket exists and is not already assigned
+    tracing::info!("Check a ticket exists and is unassigned");
     let ticket_query = r#"
         SELECT status::TEXT, assigned_to FROM request_ticket WHERE id = $1;
     "#;
@@ -130,6 +131,7 @@ pub async fn assign_ticket_handler(
         return StatusCode::CONFLICT; // Already assigned
     }
     // 2. Check agent exists and is a support_agent
+    tracing::info!("Confirming support agent exists");
     let agent_query = r#"
         SELECT type::TEXT FROM escrow_users WHERE wallet_address = $1
     "#;
@@ -152,7 +154,7 @@ pub async fn assign_ticket_handler(
         }
     };
     if agent_type != "support_agent" {
-        tracing::warn!(support_agent_wallet = %payload.support_agent_wallet, agent_type = %agent_type, "User is not a support agent");
+        tracing::info!(support_agent_wallet = %payload.support_agent_wallet, agent_type = %agent_type, "User is not a support agent");
         return StatusCode::FORBIDDEN;
     }
     // 3. Prevent assignment to unavailable agents (already assigned to another open/assigned/in_progress ticket)
@@ -171,7 +173,7 @@ pub async fn assign_ticket_handler(
         }
     };
     if agent_busy {
-        tracing::warn!(support_agent_wallet = %payload.support_agent_wallet, "Agent is already assigned to another open/assigned/in_progress ticket");
+        tracing::info!(support_agent_wallet = %payload.support_agent_wallet, "Agent is already assigned to another open/assigned/in_progress ticket");
         return StatusCode::CONFLICT; // Agent is busy
     }
     // 4. Update ticket
