@@ -7,8 +7,12 @@ use axum::Router;
 use tokio::{net::TcpListener, signal};
 
 mod health_check;
+<<<<<<< HEAD
+mod transaction;
+=======
 mod support_tickets;
 mod types;
+>>>>>>> master
 
 #[derive(Clone)]
 pub struct AppState {
@@ -33,6 +37,7 @@ pub async fn serve(configuration: Arc<Configuration>, db: Db) -> anyhow::Result<
 pub fn api_router(app_state: AppState) -> Router {
     Router::new()
         .merge(health_check::router())
+        .merge(transaction::router())
         .merge(support_tickets::router())
         .with_state(app_state)
 }
