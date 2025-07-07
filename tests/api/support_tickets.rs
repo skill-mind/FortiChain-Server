@@ -4,6 +4,7 @@ use axum::{
     http::{Request, StatusCode},
 };
 use serde_json::json;
+use uuid::Uuid;
 // use sqlx::Executor;
 
 #[tokio::test]
@@ -271,4 +272,48 @@ async fn open_ticket_sql_injection() {
         .unwrap();
     let res = app.request(req).await;
     assert_eq!(res.status(), StatusCode::CREATED);
+}
+
+#[tokio::test]
+async fn assign_ticket_happy_path() {
+    let app = TestApp::new().await;
+    let db = &app.db;
+    // Insert a support agent
+    let agent_wallet = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd";
+    sqlx::query("INSERT INTO escrow_users (wallet_address, type) VALUES ($1, 'support_agent');")
+        .bind(&agent_wallet)
+        .execute(&db.pool)
+        .await
+        .expect("Failed to insert support agent");
+    // Insert a user
+    let user_wallet = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabdc";
+    sqlx::query("INSERT INTO escrow_users (wallet_address) VALUES ($1) ON CONFLICT DO NOTHING")
+        .bind(&user_wallet)
+        .execute(&db.pool)
+        .await
+        .expect("Failed to insert user");
+    // Create a ticket
+    let ticket_id: String = sqlx::query_scalar(
+        "INSERT INTO request_ticket (subject, message, opened_by, response_subject) VALUES ($1, $2, $3, $4) RETURNING id::TEXT"
+    )
+    .bind("Assignment Test")
+    .bind("Please assign this ticket.")
+    .bind(&user_wallet)
+    .bind("Assignment Test")
+    .fetch_one(&db.pool)
+    .await
+    .expect("Failed to create ticket");
+
+    tracing::info!("Ticket IDz: {}", ticket_id);
+    // Assign the ticket
+    let payload = json!({
+        "ticket_id": ticket_id,
+        "support_agent_wallet": agent_wallet
+    });
+    let req = Request::post("/assign_ticket")
+        .header("content-type", "application/json")
+        .body(Body::from(payload.to_string()))
+        .unwrap();
+    let res = app.request(req).await;
+    assert_eq!(res.status(), StatusCode::OK);
 }
