@@ -32,6 +32,7 @@ pub async fn serve(configuration: Arc<Configuration>, db: Db) -> anyhow::Result<
 pub fn api_router(app_state: AppState) -> Router {
     Router::new()
         .merge(health_check::router())
+        .merge(transaction::router())
         .with_state(app_state)
 }
 

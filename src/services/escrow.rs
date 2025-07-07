@@ -10,18 +10,13 @@ pub struct EscrowUsers {
     pub updated_at: f64,
 }
 
-pub struct EscrowService {
-    pub db: PgPool,
-}
+pub struct EscrowService;
 
 impl EscrowService {
-    pub fn new(db: PgPool) -> Self {
-        Self { db }
-    }
-
     // Create or get existing escrow account for user
     pub async fn get_or_create_escrow_users(
         &self,
+        db: &PgPool,
         user_wallet: String,
     ) -> Result<EscrowUsers, ServiceError> {
         // First, try to get existing account
@@ -33,7 +28,7 @@ impl EscrowService {
             ",
         )
         .bind(user_wallet)
-        .fetch_optional(&self.db)
+        .fetch_optional(db)
         .await?;
 
         if let Some(account) = existing_account {

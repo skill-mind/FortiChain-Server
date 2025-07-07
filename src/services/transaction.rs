@@ -46,24 +46,20 @@ pub struct DepositRequest {
     transaction_hash: String,
 }
 
-pub struct TransactionService {
-    db: PgPool,
-}
+pub struct TransactionService;
 
 impl TransactionService {
-    pub fn new(db: PgPool) -> Self {
-        Self { db }
-    }
     pub async fn deposit_funds(
         &self,
+        db: &PgPool,
         deposit_info: DepositRequest,
     ) -> Result<Transaction, ServiceError> {
-        let mut tx = self.db.begin().await?;
+        let mut tx = db.begin().await?;
 
         // Get or create escrow account
-        let escrow_service = EscrowService::new(self.db);
+        let escrow_service = EscrowService {};
         let escrow_account = escrow_service
-            .get_or_create_escrow_users(deposit_info.wallet_address.clone())
+            .get_or_create_escrow_users(db, deposit_info.wallet_address.clone())
             .await?;
 
         // Create transaction record
