@@ -1,11 +1,11 @@
-use std::{fmt::format, sync::Once};
+use std::sync::Once;
 
 use axum::{Router, body::Body, extract::Request, response::Response};
 use fortichain_server::{AppState, Configuration, api_router, db::Db, telemetry};
+use rand::Rng;
 use sqlx::{Connection, Executor, PgConnection};
 use tower::ServiceExt;
 use uuid::Uuid;
-use rand::Rng;
 
 static TRACING: Once = Once::new();
 
@@ -80,6 +80,8 @@ fn random_hex_string() -> String {
 
 pub fn generate_address() -> String {
     let last_eigth = random_hex_string();
-    format!("0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefab{}", last_eigth)
-
+    format!(
+        "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefab{}",
+        last_eigth
+    )
 }

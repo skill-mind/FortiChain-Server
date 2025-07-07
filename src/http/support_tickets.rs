@@ -1,7 +1,7 @@
 use axum::{Json, Router, extract::State, http::StatusCode, routing::post};
 use sqlx::prelude::*;
 
-use super::types::{OpenSupportTicketRequest, AssignSupportTicketRequest};
+use super::types::{AssignSupportTicketRequest, OpenSupportTicketRequest};
 use crate::AppState;
 
 pub(crate) fn router() -> Router<AppState> {
@@ -106,7 +106,11 @@ pub async fn assign_ticket_handler(
     let ticket_query = r#"
         SELECT status::TEXT, assigned_to FROM request_ticket WHERE id = $1;
     "#;
-    let ticket_row = match db.pool.fetch_one(sqlx::query(ticket_query).bind(payload.ticket_id.clone())).await {
+    let ticket_row = match db
+        .pool
+        .fetch_one(sqlx::query(ticket_query).bind(payload.ticket_id))
+        .await
+    {
         Ok(row) => row,
         Err(e) => {
             tracing::error!(ticket_id = %payload.ticket_id, error = ?e, "Ticket not found or DB error");
@@ -129,7 +133,11 @@ pub async fn assign_ticket_handler(
     let agent_query = r#"
         SELECT type::TEXT FROM escrow_users WHERE wallet_address = $1
     "#;
-    let agent_row = match db.pool.fetch_one(sqlx::query(agent_query).bind(&payload.support_agent_wallet)).await {
+    let agent_row = match db
+        .pool
+        .fetch_one(sqlx::query(agent_query).bind(&payload.support_agent_wallet))
+        .await
+    {
         Ok(row) => row,
         Err(e) => {
             tracing::error!(support_agent_wallet = %payload.support_agent_wallet, error = ?e, "Support agent not found or DB error");
@@ -151,7 +159,11 @@ pub async fn assign_ticket_handler(
     let agent_busy_query = r#"
         SELECT 1 FROM request_ticket WHERE assigned_to = $1 AND status IN ('assigned', 'in_progress', 'open')
     "#;
-    let agent_busy = match db.pool.fetch_optional(sqlx::query(agent_busy_query).bind(&payload.support_agent_wallet)).await {
+    let agent_busy = match db
+        .pool
+        .fetch_optional(sqlx::query(agent_busy_query).bind(&payload.support_agent_wallet))
+        .await
+    {
         Ok(opt) => opt.is_some(),
         Err(e) => {
             tracing::error!(support_agent_wallet = %payload.support_agent_wallet, error = ?e, "Failed to check if agent is busy");
@@ -166,14 +178,22 @@ pub async fn assign_ticket_handler(
     let update_query = r#"
         UPDATE request_ticket SET status = 'assigned', assigned_to = $1, updated_at = NOW() WHERE id = $2
     "#;
-    match db.pool.execute(sqlx::query(update_query).bind(&payload.support_agent_wallet).bind(&payload.ticket_id)).await {
+    match db
+        .pool
+        .execute(
+            sqlx::query(update_query)
+                .bind(&payload.support_agent_wallet)
+                .bind(payload.ticket_id),
+        )
+        .await
+    {
         Ok(_) => {
             tracing::info!(ticket_id = %payload.ticket_id, support_agent_wallet = %payload.support_agent_wallet, "Ticket successfully assigned");
             StatusCode::OK
-        },
+        }
         Err(e) => {
             tracing::error!(ticket_id = %payload.ticket_id, support_agent_wallet = %payload.support_agent_wallet, error = ?e, "Failed to update ticket assignment");
             StatusCode::INTERNAL_SERVER_ERROR
-        },
+        }
     }
 }
