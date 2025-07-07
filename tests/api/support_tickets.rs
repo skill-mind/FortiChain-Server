@@ -1,10 +1,9 @@
-use crate::helpers::TestApp;
+use crate::helpers::{TestApp, generate_address};
 use axum::{
     body::Body,
     http::{Request, StatusCode},
 };
 use serde_json::json;
-use uuid::Uuid;
 // use sqlx::Executor;
 
 #[tokio::test]
@@ -12,9 +11,9 @@ async fn open_ticket_happy_path() {
     let app = TestApp::new().await;
     let db = &app.db;
     // Insert a user into escrow_users
-    let wallet = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabca";
+    let wallet = generate_address();
     sqlx::query("INSERT INTO escrow_users (wallet_address) VALUES ($1) ON CONFLICT DO NOTHING")
-        .bind(wallet)
+        .bind(wallet.clone())
         .execute(&db.pool)
         .await
         .expect("Failed to insert user");
@@ -36,9 +35,9 @@ async fn open_ticket_happy_path() {
 async fn open_ticket_subject_too_short() {
     let app = TestApp::new().await;
     let db = &app.db;
-    let wallet = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabce";
+    let wallet = generate_address();
     sqlx::query("INSERT INTO escrow_users (wallet_address) VALUES ($1) ON CONFLICT DO NOTHING")
-        .bind(wallet)
+        .bind(wallet.clone())
         .execute(&db.pool)
         .await
         .expect("Failed to insert user");
@@ -59,9 +58,9 @@ async fn open_ticket_subject_too_short() {
 async fn open_ticket_message_too_short() {
     let app = TestApp::new().await;
     let db = &app.db;
-    let wallet = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabce";
+    let wallet = generate_address();
     sqlx::query("INSERT INTO escrow_users (wallet_address) VALUES ($1) ON CONFLICT DO NOTHING")
-        .bind(wallet)
+        .bind(wallet.clone())
         .execute(&db.pool)
         .await
         .expect("Failed to insert user");
@@ -114,9 +113,9 @@ async fn open_ticket_nonexistent_user() {
 async fn open_ticket_subject_max_length() {
     let app = TestApp::new().await;
     let db = &app.db;
-    let wallet = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd";
+    let wallet = generate_address();
     sqlx::query("INSERT INTO escrow_users (wallet_address) VALUES ($1) ON CONFLICT DO NOTHING")
-        .bind(wallet)
+        .bind(wallet.clone())
         .execute(&db.pool)
         .await
         .expect("Failed to insert user");
@@ -138,9 +137,9 @@ async fn open_ticket_subject_max_length() {
 async fn open_ticket_subject_too_long() {
     let app = TestApp::new().await;
     let db = &app.db;
-    let wallet = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd";
+    let wallet = generate_address();
     sqlx::query("INSERT INTO escrow_users (wallet_address) VALUES ($1) ON CONFLICT DO NOTHING")
-        .bind(wallet)
+        .bind(wallet.clone())
         .execute(&db.pool)
         .await
         .expect("Failed to insert user");
@@ -162,9 +161,9 @@ async fn open_ticket_subject_too_long() {
 async fn open_ticket_message_max_length() {
     let app = TestApp::new().await;
     let db = &app.db;
-    let wallet = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd";
+    let wallet = generate_address();
     sqlx::query("INSERT INTO escrow_users (wallet_address) VALUES ($1) ON CONFLICT DO NOTHING")
-        .bind(wallet)
+        .bind(wallet.clone())
         .execute(&db.pool)
         .await
         .expect("Failed to insert user");
@@ -186,9 +185,9 @@ async fn open_ticket_message_max_length() {
 async fn open_ticket_message_too_long() {
     let app = TestApp::new().await;
     let db = &app.db;
-    let wallet = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd";
+    let wallet = generate_address();
     sqlx::query("INSERT INTO escrow_users (wallet_address) VALUES ($1) ON CONFLICT DO NOTHING")
-        .bind(wallet)
+        .bind(wallet.clone())
         .execute(&db.pool)
         .await
         .expect("Failed to insert user");
@@ -210,9 +209,9 @@ async fn open_ticket_message_too_long() {
 async fn open_ticket_trimming() {
     let app = TestApp::new().await;
     let db = &app.db;
-    let wallet = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd";
+    let wallet = generate_address();
     sqlx::query("INSERT INTO escrow_users (wallet_address) VALUES ($1) ON CONFLICT DO NOTHING")
-        .bind(wallet)
+        .bind(wallet.clone())
         .execute(&db.pool)
         .await
         .expect("Failed to insert user");
@@ -255,9 +254,9 @@ async fn open_ticket_invalid_wallet_format() {
 async fn open_ticket_sql_injection() {
     let app = TestApp::new().await;
     let db = &app.db;
-    let wallet = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd";
+    let wallet = generate_address();
     sqlx::query("INSERT INTO escrow_users (wallet_address) VALUES ($1) ON CONFLICT DO NOTHING")
-        .bind(wallet)
+        .bind(wallet.clone())
         .execute(&db.pool)
         .await
         .expect("Failed to insert user");
@@ -279,14 +278,14 @@ async fn assign_ticket_happy_path() {
     let app = TestApp::new().await;
     let db = &app.db;
     // Insert a support agent
-    let agent_wallet = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd";
+    let agent_wallet = generate_address();
     sqlx::query("INSERT INTO escrow_users (wallet_address, type) VALUES ($1, 'support_agent');")
         .bind(&agent_wallet)
         .execute(&db.pool)
         .await
         .expect("Failed to insert support agent");
     // Insert a user
-    let user_wallet = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabdc";
+    let user_wallet = generate_address();
     sqlx::query("INSERT INTO escrow_users (wallet_address) VALUES ($1) ON CONFLICT DO NOTHING")
         .bind(&user_wallet)
         .execute(&db.pool)

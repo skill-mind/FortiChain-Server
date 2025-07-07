@@ -108,20 +108,21 @@ pub async fn assign_ticket_handler(
     "#;
     let ticket_row = match db.pool.fetch_one(sqlx::query(ticket_query).bind(payload.ticket_id.clone())).await {
         Ok(row) => row,
-        Err(_) => {
-            tracing::error!("Ticket not found id {}", payload.ticket_id);
+        Err(e) => {
+            tracing::error!(ticket_id = %payload.ticket_id, error = ?e, "Ticket not found or DB error");
             return StatusCode::NOT_FOUND;
         }
     };
     let status: String = match ticket_row.try_get("status") {
         Ok(s) => s,
-        Err(_) => {
-            tracing::error!("Failed to extract status from ticket_row");
+        Err(e) => {
+            tracing::error!(ticket_id = %payload.ticket_id, error = ?e, "Failed to extract status from ticket_row");
             return StatusCode::INTERNAL_SERVER_ERROR;
         }
     };
     // let assigned_to: Option<String> = ticket_row.try_get("assigned_to").ok();
     if status == "assigned" || status == "in_progress" {
+        tracing::warn!(ticket_id = %payload.ticket_id, status = %status, "Ticket already assigned or in progress");
         return StatusCode::CONFLICT; // Already assigned
     }
     // 2. Check agent exists and is a support_agent
@@ -130,21 +131,35 @@ pub async fn assign_ticket_handler(
     "#;
     let agent_row = match db.pool.fetch_one(sqlx::query(agent_query).bind(&payload.support_agent_wallet)).await {
         Ok(row) => row,
-        Err(_) => return StatusCode::BAD_REQUEST, // Agent not found
+        Err(e) => {
+            tracing::error!(support_agent_wallet = %payload.support_agent_wallet, error = ?e, "Support agent not found or DB error");
+            return StatusCode::BAD_REQUEST; // Agent not found
+        }
     };
     let agent_type: String = match agent_row.try_get("type") {
         Ok(t) => t,
-        Err(_) => return StatusCode::INTERNAL_SERVER_ERROR,
+        Err(e) => {
+            tracing::error!(support_agent_wallet = %payload.support_agent_wallet, error = ?e, "Failed to extract type from agent_row");
+            return StatusCode::INTERNAL_SERVER_ERROR;
+        }
     };
     if agent_type != "support_agent" {
+        tracing::warn!(support_agent_wallet = %payload.support_agent_wallet, agent_type = %agent_type, "User is not a support agent");
         return StatusCode::FORBIDDEN;
     }
     // 3. Prevent assignment to unavailable agents (already assigned to another open/assigned/in_progress ticket)
     let agent_busy_query = r#"
         SELECT 1 FROM request_ticket WHERE assigned_to = $1 AND status IN ('assigned', 'in_progress', 'open')
     "#;
-    let agent_busy = db.pool.fetch_optional(sqlx::query(agent_busy_query).bind(&payload.support_agent_wallet)).await.ok().flatten().is_some();
+    let agent_busy = match db.pool.fetch_optional(sqlx::query(agent_busy_query).bind(&payload.support_agent_wallet)).await {
+        Ok(opt) => opt.is_some(),
+        Err(e) => {
+            tracing::error!(support_agent_wallet = %payload.support_agent_wallet, error = ?e, "Failed to check if agent is busy");
+            return StatusCode::INTERNAL_SERVER_ERROR;
+        }
+    };
     if agent_busy {
+        tracing::warn!(support_agent_wallet = %payload.support_agent_wallet, "Agent is already assigned to another open/assigned/in_progress ticket");
         return StatusCode::CONFLICT; // Agent is busy
     }
     // 4. Update ticket
@@ -152,7 +167,13 @@ pub async fn assign_ticket_handler(
         UPDATE request_ticket SET status = 'assigned', assigned_to = $1, updated_at = NOW() WHERE id = $2
     "#;
     match db.pool.execute(sqlx::query(update_query).bind(&payload.support_agent_wallet).bind(&payload.ticket_id)).await {
-        Ok(_) => StatusCode::OK,
-        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+        Ok(_) => {
+            tracing::info!(ticket_id = %payload.ticket_id, support_agent_wallet = %payload.support_agent_wallet, "Ticket successfully assigned");
+            StatusCode::OK
+        },
+        Err(e) => {
+            tracing::error!(ticket_id = %payload.ticket_id, support_agent_wallet = %payload.support_agent_wallet, error = ?e, "Failed to update ticket assignment");
+            StatusCode::INTERNAL_SERVER_ERROR
+        },
     }
 }

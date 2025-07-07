@@ -1,10 +1,11 @@
-use std::sync::Once;
+use std::{fmt::format, sync::Once};
 
 use axum::{Router, body::Body, extract::Request, response::Response};
 use fortichain_server::{AppState, Configuration, api_router, db::Db, telemetry};
 use sqlx::{Connection, Executor, PgConnection};
 use tower::ServiceExt;
 use uuid::Uuid;
+use rand::Rng;
 
 static TRACING: Once = Once::new();
 
@@ -64,4 +65,21 @@ pub fn db_str_and_uuid(db_str: &str) -> (String, String) {
     let uuid_db = Uuid::now_v7().to_string();
 
     (db_str.to_owned(), uuid_db)
+}
+
+fn random_hex_string() -> String {
+    let charset = b"abcdefABCDEF0123456789";
+    let mut rng = rand::rng();
+    (0..8)
+        .map(|_| {
+            let idx = rng.random_range(0..charset.len());
+            charset[idx] as char
+        })
+        .collect()
+}
+
+pub fn generate_address() -> String {
+    let last_eigth = random_hex_string();
+    format!("0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefab{}", last_eigth)
+
 }
