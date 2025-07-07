@@ -72,8 +72,7 @@ impl TransactionService {
             RETURNING id, wallet_address, project_id, transaction_type as "transaction_type: TransactionType", 
                      amount, transaction_status as "transaction_status: TransactionStatus", description, created_at, updated_at
             "#;
-        let transaction = 
-            sqlx::query_as::<_,Transaction>(query)
+        let transaction = sqlx::query_as::<_, Transaction>(query)
             .bind(deposit_info.wallet_address.clone())
             .bind(deposit_info.project_id)
             .bind(TransactionType::Deposit as TransactionType)
@@ -84,8 +83,8 @@ impl TransactionService {
             .bind(deposit_info.notes)
             .bind(now)
             .bind(now)
-        .fetch_one(&mut *tx)
-        .await?;
+            .fetch_one(&mut *tx)
+            .await?;
 
         // Update escrow account balance
         let new_balance = escrow_account.balance + deposit_info.amount;
@@ -95,10 +94,11 @@ impl TransactionService {
             UPDATE escrow_users
             SET balance = $1, updated_at = $2
             WHERE wallet_address = $3
-            "#,)
-            .bind(new_balance)
-            .bind(now)
-            .bind(deposit_info.wallet_address.clone())
+            "#,
+        )
+        .bind(new_balance)
+        .bind(now)
+        .bind(deposit_info.wallet_address.clone())
         .execute(&mut *tx)
         .await?;
 
