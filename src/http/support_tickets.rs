@@ -100,6 +100,18 @@ async fn resolve_ticket_handler(
     state: State<AppState>,
     Json(payload): Json<ResolveSupportTicketRequest>,
 ) -> axum::http::StatusCode {
+    // validate response length
+    let resolution_response_len = payload.resolution_response.trim().len();
+    if resolution_response_len < 10 {
+        tracing::error!(
+            resolution_response_len = resolution_response_len,
+            "Resolution response too short (min 10 characters)"
+        );
+        return StatusCode::BAD_REQUEST;
+    }
+
+    let db = &state.db;
+
     tracing::info!(
         ticket_id = %payload.ticket_id,
         resolved_by = %payload.resolved_by,
@@ -136,6 +148,33 @@ async fn resolve_ticket_handler(
     }
 
     // check only admin can resolve support ticket
+    let resolver_query = r#"
+        SELECT type::TEXT FROM escrow_users WHERE wallet_address = $1
+    "#;
+    let resolver_row = match db
+        .pool
+        .fetch_one(sqlx::query(resolver_query).bind(&payload.resolved_by))
+        .await
+    {
+        Ok(row) => row,
+        Err(_) => {
+            tracing::error!("Resolver not found in escrow_users table");
+            return StatusCode::BAD_REQUEST;
+        }
+    };
+
+    let resolver_type: String = match resolver_row.try_get("type") {
+        Ok(t) => t,
+        Err(_) => {
+            tracing::error!("Failed to extract resolver type");
+            return StatusCode::INTERNAL_SERVER_ERROR;
+        }
+    };
+
+    if resolver_type != "admin" {
+        tracing::error!("Only user admin type can resolve support tickets");
+        return StatusCode::FORBIDDEN;
+    }
 
     // we should have field that save who resolve the ticket //   resolved_by
 
