@@ -1,13 +1,15 @@
-use sqlx::{postgres::PgPool, query_as};
+use serde::{Deserialize, Serialize};
+use sqlx::postgres::PgPool;
 
 use crate::services::utils::ServiceError;
-use std::time::{SystemTime, UNIX_EPOCH};
+use time::OffsetDateTime;
 
+#[derive(Debug, sqlx::FromRow, Serialize, Deserialize)]
 pub struct EscrowUsers {
     pub wallet_address: String,
-    pub balance: u128,
-    pub created_at: f64,
-    pub updated_at: f64,
+    pub balance: i64,
+    pub created_at: String,
+    pub updated_at: String,
 }
 
 pub struct EscrowService;
@@ -20,38 +22,34 @@ impl EscrowService {
         user_wallet: String,
     ) -> Result<EscrowUsers, ServiceError> {
         // First, try to get existing account
-        let existing_account = query_as::<_, EscrowUsers>(
-            "
+        let query = r#"
             SELECT wallet_address, balance, created_at, updated_at
             FROM escrow_users
             WHERE wallet_address = $1
-            ",
-        )
-        .bind(user_wallet)
-        .fetch_optional(db)
-        .await?;
+        "#;
+        let existing_account = sqlx::query_as::<_, EscrowUsers>(&query)
+            .bind(user_wallet.clone())
+            .fetch_optional(db)
+            .await?;
 
         if let Some(account) = existing_account {
             return Ok(account);
         }
 
         // Create new account if it doesn't exist
-        let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs_f64();
-
-        let new_account = sqlx::query_as!(
-            EscrowUsers,
-            r#"
+        let now = OffsetDateTime::now_utc();
+        let create_account_query = r#"
             INSERT INTO escrow_users (wallet_address, balance, created_at, updated_at)
             VALUES ($1, $2, $3, $4,)
             RETURNING wallet_address, balance, created_at, updated_at
-            "#,
-            user_wallet.clone(),
-            0,
-            now,
-            now
-        )
-        .fetch_one(&self.db)
-        .await?;
+            "#;
+        let new_account = sqlx::query_as::<_, EscrowUsers>(create_account_query)
+            .bind(user_wallet)
+            .bind(0)
+            .bind(now)
+            .bind(now)
+            .fetch_one(db)
+            .await?;
 
         Ok(new_account)
     }
