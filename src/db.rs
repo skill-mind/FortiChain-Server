@@ -32,3 +32,26 @@ impl Db {
         Ok(())
     }
 }
+
+    // Create a new research report
+    pub async fn create_report(&self, new: NewResearchReport) -> Result<ResearchReport, Error> {
+        let rec = sqlx::query_as!(
+            ResearchReport,
+            r#"
+            INSERT INTO research_report (title, project_id, body, reported_by)
+            VALUES ($1, $2, $3, $4)
+            RETURNING
+                id, title, project_id, body, reported_by,
+                validated_by, status::text, severity::text,
+                allocated_reward, reason::text, validator_notes,
+                researcher_response, created_at, updated_at
+            "#,
+            new.title,
+            new.project_id,
+            new.body,
+            new.reported_by
+        )
+        .fetch_one(&self.pool)
+        .await?;
+        Ok(rec)
+    }
