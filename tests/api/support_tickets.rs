@@ -598,17 +598,17 @@ async fn resolve_ticket_happy_path() {
     assert_eq!(res.status(), StatusCode::OK);
 
     // Verify the ticket was resolved in the database
-    //     let resolved_ticket = sqlx::query("SELECT status::TEXT, resolution_response, resolved_at FROM request_ticket WHERE id = $1")
-    //         .bind(ticket_id)
-    //         .fetch_one(&db.pool)
-    //         .await
-    //         .expect("Failed to fetch resolved ticket");
+    let resolved_ticket = sqlx::query("SELECT status::TEXT, resolution_response, resolved_at FROM request_ticket WHERE id = $1")
+        .bind(ticket_id)
+        .fetch_one(&db.pool)
+        .await
+        .expect("Failed to fetch resolved ticket");
 
-    //     let status: String = resolved_ticket.try_get("status").expect("Failed to get status");
-    //     let resolution_response: String = resolved_ticket.try_get("resolution_response").expect("Failed to get resolution response");
-    //    //  let resolved_at: Option<chrono::DateTime<chrono::Utc>> = resolved_ticket.try_get_raw("resolved_at").expect("Failed to get resolved_at");
+    let status: String = resolved_ticket.try_get("status").expect("Failed to get status");
+    let resolution_response: String = resolved_ticket.try_get("resolution_response").expect("Failed to get resolution response");
+   //  let resolved_at: Option<chrono::DateTime<chrono::Utc>> = resolved_ticket.try_get_raw("resolved_at").expect("Failed to get resolved_at");
 
-    //     assert_eq!(status, "resolved");
-    //     assert_eq!(resolution_response, "Your account has been successfully restored. Please try logging in again.");
-    //    // assert!(resolved_at.is_some());
+    assert_eq!(status, "resolved");
+    assert_eq!(resolution_response, "Your account has been successfully restored. Please try logging in again.");
+   // assert!(resolved_at.is_some());
 }
