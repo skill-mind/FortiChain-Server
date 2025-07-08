@@ -1,7 +1,10 @@
 use axum::{Json, Router, extract::State, http::StatusCode, routing::post};
 use sqlx::prelude::*;
+use uuid::Uuid;
 
-use super::types::{OpenSupportTicketRequest, AssignSupportTicketRequest, ResolveSupportTicketRequest};
+use super::types::{
+    AssignSupportTicketRequest, OpenSupportTicketRequest, ResolveSupportTicketRequest,
+};
 use crate::AppState;
 
 pub(crate) fn router() -> Router<AppState> {
@@ -198,7 +201,7 @@ pub async fn assign_ticket_handler(
     }
 }
 
-#[tracing::instrument(skip(state, payload))]
+#[tracing::instrument(name = "Resolve Ticket", skip(state, payload))]
 async fn resolve_ticket_handler(
     state: State<AppState>,
     Json(payload): Json<ResolveSupportTicketRequest>,
@@ -220,18 +223,28 @@ async fn resolve_ticket_handler(
         "Attempt to resolve support ticket"
     );
 
+    let ticket_uuid = match Uuid::parse_str(&payload.ticket_id) {
+        Ok(uuid) => uuid,
+        Err(_) => {
+            tracing::error!("Invalid UUID format: {}", payload.ticket_id);
+            return StatusCode::BAD_REQUEST;
+        }
+    };
+
     let ticket_query = r#"
-        SELECT status::TEXT, assigned_to, opened_by FROM request_ticket WHERE id = $1
+    SELECT status::TEXT, assigned_to, opened_by
+    FROM request_ticket
+    WHERE id = $1
     "#;
 
-    let ticket_row = match db
-        .pool
-        .fetch_one(sqlx::query(ticket_query).bind(&payload.ticket_id))
+    let ticket_row = match sqlx::query(ticket_query)
+        .bind(&ticket_uuid)
+        .fetch_one(&db.pool)
         .await
     {
         Ok(row) => row,
-        Err(_) => {
-            tracing::error!("Ticket not found id {}", payload.ticket_id);
+        Err(e) => {
+            tracing::error!("Ticket not found with id {}: {:?}", payload.ticket_id, e);
             return StatusCode::NOT_FOUND;
         }
     };
@@ -282,8 +295,7 @@ async fn resolve_ticket_handler(
         SET 
             status = 'resolved'::ticket_status_type,
             resolution_response = $1,
-            resolved_at = NOW(),
-            updated_at = NOW()
+            resolved_at = NOW()
         WHERE id = $3
     "#;
 
@@ -293,13 +305,13 @@ async fn resolve_ticket_handler(
             sqlx::query(resolve_query)
                 .bind(&payload.resolution_response)
                 .bind(&payload.resolved_by)
-                .bind(&payload.ticket_id),
+                .bind(&ticket_uuid),
         )
         .await
     {
         Ok(_) => {
             tracing::info!(
-                ticket_id = %payload.ticket_id,
+                ticket_id = %ticket_uuid,
                 resolved_by = %payload.resolved_by,
                 "Support Ticket Resolved Successfully"
             );
@@ -311,4 +323,3 @@ async fn resolve_ticket_handler(
         }
     }
 }
-

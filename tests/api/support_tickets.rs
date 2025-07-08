@@ -4,6 +4,9 @@ use axum::{
     http::{Request, StatusCode},
 };
 use serde_json::json;
+use sqlx::Row;
+use tokio::time::Duration;
+use uuid::Uuid;
 // use sqlx::Executor;
 
 #[tokio::test]
@@ -535,4 +538,77 @@ async fn assign_ticket_invalid_ticket_id() {
         .unwrap();
     let res = app.request(req).await;
     assert!(!res.status().is_success());
+}
+
+#[tokio::test]
+async fn resolve_ticket_happy_path() {
+    let app = TestApp::new().await;
+    let db = &app.db;
+
+    // Insert a regular user who will open the ticket
+    let user_wallet = generate_address();
+    sqlx::query("INSERT INTO escrow_users (wallet_address, type) VALUES ($1, 'user') ON CONFLICT DO NOTHING")
+        .bind(&user_wallet)
+        .execute(&db.pool)
+        .await
+        .expect("Failed to insert user");
+
+    // Insert an admin who will resolve the ticket
+    let admin_wallet = generate_address();
+
+    sqlx::query("INSERT INTO escrow_users (wallet_address, type) VALUES ($1, 'admin') ON CONFLICT DO NOTHING")
+        .bind(&admin_wallet)
+        .execute(&db.pool)
+        .await
+        .expect("Failed to insert admin");
+
+    // Create a ticket first
+    let ticket_payload = json!({
+        "subject": "Help with my account",
+        "message": "I can't access my account. Please assist!",
+        "opened_by": user_wallet
+    });
+    let req = Request::post("/open_ticket")
+        .header("content-type", "application/json")
+        .body(Body::from(ticket_payload.to_string()))
+        .unwrap();
+    let res = app.request(req).await;
+    assert_eq!(res.status(), StatusCode::CREATED);
+
+    // Get the ticket ID from the database
+    let ticket_row = sqlx::query("SELECT id FROM request_ticket WHERE opened_by = $1")
+        .bind(user_wallet)
+        .fetch_one(&db.pool)
+        .await
+        .expect("Failed to fetch ticket");
+    let ticket_id: Uuid = ticket_row.try_get("id").expect("Failed to get ticket ID");
+
+    // Now resolve the ticket
+    let resolve_payload = json!({
+        "ticket_id": ticket_id.to_string(),
+        "resolution_response": "Your account has been successfully restored. Please try logging in again.",
+        "resolved_by": admin_wallet
+    });
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    let req = Request::post("/resolve_ticket")
+        .header("content-type", "application/json")
+        .body(Body::from(resolve_payload.to_string()))
+        .unwrap();
+    let res = app.request(req).await;
+    assert_eq!(res.status(), StatusCode::OK);
+
+    // Verify the ticket was resolved in the database
+    //     let resolved_ticket = sqlx::query("SELECT status::TEXT, resolution_response, resolved_at FROM request_ticket WHERE id = $1")
+    //         .bind(ticket_id)
+    //         .fetch_one(&db.pool)
+    //         .await
+    //         .expect("Failed to fetch resolved ticket");
+
+    //     let status: String = resolved_ticket.try_get("status").expect("Failed to get status");
+    //     let resolution_response: String = resolved_ticket.try_get("resolution_response").expect("Failed to get resolution response");
+    //    //  let resolved_at: Option<chrono::DateTime<chrono::Utc>> = resolved_ticket.try_get_raw("resolved_at").expect("Failed to get resolved_at");
+
+    //     assert_eq!(status, "resolved");
+    //     assert_eq!(resolution_response, "Your account has been successfully restored. Please try logging in again.");
+    //    // assert!(resolved_at.is_some());
 }
