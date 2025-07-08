@@ -1,24 +1,23 @@
 use axum::{Json, Router, extract::State, http::StatusCode, routing::post};
 use sqlx::prelude::*;
 
-use super::types::{OpenSupportTicketRequest, ResolveSupportTicketRequest};
+use super::types::{OpenSupportTicketRequest, AssignSupportTicketRequest, ResolveSupportTicketRequest};
 use crate::AppState;
 
 pub(crate) fn router() -> Router<AppState> {
     Router::new()
         .route("/open_ticket", post(open_ticket_handler))
-        .route("resolve_ticket", post(resolve_ticket_handler))
+        .route("/assign_ticket", post(assign_ticket_handler))
+        .route("/resolve_ticket", post(resolve_ticket_handler))
     //   .route("/close_ticket", post(close_ticket_handler))
-    //   .route("/assign_ticket", post(assign_ticket_handler))
     //   .route("/unassign_ticket", post(unassign_ticket_handler))
 }
 
-#[tracing::instrument(skip(state, payload))]
+#[tracing::instrument(name = "open_ticket_handler", skip(state, payload))]
 async fn open_ticket_handler(
     state: State<AppState>,
     Json(payload): Json<OpenSupportTicketRequest>,
 ) -> axum::http::StatusCode {
-    // Validate the payload
     let subject_len = payload.subject.trim().len();
     let message_len = payload.message.trim().len();
     if !(5..=99).contains(&subject_len)
@@ -35,7 +34,6 @@ async fn open_ticket_handler(
 
     tracing::info!(opened_by = %payload.opened_by, subject = %payload.subject, "Attempting to create a support ticket");
 
-    // Check if the user exists in the escrow_users table
     let db = &state.db;
     let user_exists_query = r#"
         SELECT EXISTS(
@@ -66,8 +64,6 @@ async fn open_ticket_handler(
         return StatusCode::BAD_REQUEST;
     }
 
-    // Logic to open a ticket
-    let db = &state.db;
     let query = r#"
         INSERT INTO request_ticket (
             subject,
@@ -97,12 +93,116 @@ async fn open_ticket_handler(
     StatusCode::CREATED
 }
 
+#[tracing::instrument(name = "assign_ticket_handler", skip(state, payload))]
+pub async fn assign_ticket_handler(
+    state: State<AppState>,
+    Json(payload): Json<AssignSupportTicketRequest>,
+) -> StatusCode {
+    let db = &state.db;
+    let ticket_query = r#"
+        SELECT status::TEXT, assigned_to FROM request_ticket WHERE id = $1;
+    "#;
+    let ticket_row = match db
+        .pool
+        .fetch_one(sqlx::query(ticket_query).bind(payload.ticket_id))
+        .await
+    {
+        Ok(row) => row,
+        Err(e) => {
+            tracing::error!(ticket_id = %payload.ticket_id, error = ?e, "Ticket not found or DB error");
+            return StatusCode::NOT_FOUND;
+        }
+    };
+
+    let status: String = match ticket_row.try_get("status") {
+        Ok(s) => s,
+        Err(e) => {
+            tracing::error!(ticket_id = %payload.ticket_id, error = ?e, "Failed to extract status from ticket_row");
+            return StatusCode::INTERNAL_SERVER_ERROR;
+        }
+    };
+
+    if status == "assigned" || status == "in_progress" {
+        tracing::warn!(ticket_id = %payload.ticket_id, status = %status, "Ticket already assigned or in progress");
+        return StatusCode::CONFLICT;
+    }
+
+    let agent_query = r#"
+        SELECT type::TEXT FROM escrow_users WHERE wallet_address = $1
+    "#;
+    let agent_row = match db
+        .pool
+        .fetch_one(sqlx::query(agent_query).bind(&payload.support_agent_wallet))
+        .await
+    {
+        Ok(row) => row,
+        Err(e) => {
+            tracing::error!(support_agent_wallet = %payload.support_agent_wallet, error = ?e, "Support agent not found or DB error");
+            return StatusCode::BAD_REQUEST;
+        }
+    };
+
+    let agent_type: String = match agent_row.try_get("type") {
+        Ok(t) => t,
+        Err(e) => {
+            tracing::error!(support_agent_wallet = %payload.support_agent_wallet, error = ?e, "Failed to extract type from agent_row");
+            return StatusCode::INTERNAL_SERVER_ERROR;
+        }
+    };
+
+    if agent_type != "support_agent" {
+        tracing::info!(support_agent_wallet = %payload.support_agent_wallet, agent_type = %agent_type, "User is not a support agent");
+        return StatusCode::FORBIDDEN;
+    }
+
+    let agent_busy_query = r#"
+        SELECT 1 FROM request_ticket WHERE assigned_to = $1 AND status IN ('assigned', 'in_progress', 'open')
+    "#;
+    let agent_busy = match db
+        .pool
+        .fetch_optional(sqlx::query(agent_busy_query).bind(&payload.support_agent_wallet))
+        .await
+    {
+        Ok(opt) => opt.is_some(),
+        Err(e) => {
+            tracing::error!(support_agent_wallet = %payload.support_agent_wallet, error = ?e, "Failed to check if agent is busy");
+            return StatusCode::INTERNAL_SERVER_ERROR;
+        }
+    };
+
+    if agent_busy {
+        tracing::info!(support_agent_wallet = %payload.support_agent_wallet, "Agent is already assigned to another open/assigned/in_progress ticket");
+        return StatusCode::CONFLICT;
+    }
+
+    let update_query = r#"
+        UPDATE request_ticket SET status = 'assigned', assigned_to = $1, updated_at = NOW() WHERE id = $2
+    "#;
+    match db
+        .pool
+        .execute(
+            sqlx::query(update_query)
+                .bind(&payload.support_agent_wallet)
+                .bind(payload.ticket_id),
+        )
+        .await
+    {
+        Ok(_) => {
+            tracing::info!(ticket_id = %payload.ticket_id, support_agent_wallet = %payload.support_agent_wallet, "Ticket successfully assigned");
+            StatusCode::OK
+        }
+        Err(e) => {
+            tracing::error!(ticket_id = %payload.ticket_id, support_agent_wallet = %payload.support_agent_wallet, error = ?e, "Failed to update ticket assignment");
+            StatusCode::INTERNAL_SERVER_ERROR
+        }
+    }
+}
+
 #[tracing::instrument(skip(state, payload))]
 async fn resolve_ticket_handler(
     state: State<AppState>,
     Json(payload): Json<ResolveSupportTicketRequest>,
 ) -> axum::http::StatusCode {
-    // validate response length
     let resolution_response_len = payload.resolution_response.trim().len();
     if resolution_response_len < 10 {
         tracing::error!(
@@ -119,7 +219,7 @@ async fn resolve_ticket_handler(
         resolved_by = %payload.resolved_by,
         "Attempt to resolve support ticket"
     );
-    // check if ticket exist
+
     let ticket_query = r#"
         SELECT status::TEXT, assigned_to, opened_by FROM request_ticket WHERE id = $1
     "#;
@@ -149,7 +249,6 @@ async fn resolve_ticket_handler(
         return StatusCode::CONFLICT;
     }
 
-    // check only admin can resolve support ticket
     let resolver_query = r#"
         SELECT type::TEXT FROM escrow_users WHERE wallet_address = $1
     "#;
@@ -178,8 +277,6 @@ async fn resolve_ticket_handler(
         return StatusCode::FORBIDDEN;
     }
 
-    // we should have field that save who resolve the ticket //   resolved_by
-
     let resolve_query = r#"
         UPDATE request_ticket 
         SET 
@@ -188,7 +285,7 @@ async fn resolve_ticket_handler(
             resolved_at = NOW(),
             updated_at = NOW()
         WHERE id = $3
-        "#;
+    "#;
 
     match db
         .pool
@@ -201,11 +298,10 @@ async fn resolve_ticket_handler(
         .await
     {
         Ok(_) => {
-            // TODO : SEND User notification
             tracing::info!(
-            ticket_id = %payload.ticket_id,
-            resolved_by = %payload.resolved_by,
-            "Support Ticket Resolve Successfully"
+                ticket_id = %payload.ticket_id,
+                resolved_by = %payload.resolved_by,
+                "Support Ticket Resolved Successfully"
             );
             StatusCode::OK
         }
@@ -215,3 +311,4 @@ async fn resolve_ticket_handler(
         }
     }
 }
+
