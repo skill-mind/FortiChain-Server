@@ -238,7 +238,7 @@ async fn resolve_ticket_handler(
     "#;
 
     let ticket_row = match sqlx::query(ticket_query)
-        .bind(&ticket_uuid)
+        .bind(ticket_uuid)
         .fetch_one(&db.pool)
         .await
     {
@@ -305,7 +305,7 @@ async fn resolve_ticket_handler(
             sqlx::query(resolve_query)
                 .bind(&payload.resolution_response)
                 .bind(&payload.resolved_by)
-                .bind(&ticket_uuid),
+                .bind(ticket_uuid),
         )
         .await
     {
