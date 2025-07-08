@@ -6,6 +6,7 @@ use anyhow::Context;
 use axum::Router;
 use tokio::{net::TcpListener, signal};
 
+mod create_project;
 mod health_check;
 mod support_tickets;
 mod types;
@@ -34,6 +35,7 @@ pub fn api_router(app_state: AppState) -> Router {
     Router::new()
         .merge(health_check::router())
         .merge(support_tickets::router())
+        .merge(create_project::router())
         .with_state(app_state)
 }
 
