@@ -10,6 +10,7 @@ mod create_project;
 mod health_check;
 mod support_tickets;
 mod types;
+mod bounty;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -36,6 +37,7 @@ pub fn api_router(app_state: AppState) -> Router {
         .merge(health_check::router())
         .merge(support_tickets::router())
         .merge(create_project::router())
+        .merge(bounty::router())
         .with_state(app_state)
 }
 

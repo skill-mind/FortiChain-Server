@@ -55,3 +55,13 @@ pub struct AssignSupportTicketRequest {
     pub ticket_id: Uuid,
     pub support_agent_wallet: String,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AllocateBountyRequest {
+    pub wallet_address: String,
+    pub project_contract_address: String,
+    pub amount: BigDecimal,
+    pub currency: String,
+    pub bounty_expiry_date: Option<DateTime<Utc>>, // ISO8601 string
+}
+
