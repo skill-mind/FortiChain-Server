@@ -2,8 +2,7 @@ use axum::{Json, Router, extract::State, http::StatusCode, routing::post};
 // use sqlx::Acquire;
 use super::types::AllocateBountyRequest;
 use crate::AppState;
-use uuid::Uuid;
-use chrono::{DateTime, Utc};
+use super::helpers::generate_transaction_hash;
 use bigdecimal::{BigDecimal, Zero};
 
 pub(crate) fn router() -> Router<AppState> {
@@ -105,7 +104,7 @@ async fn allocate_bounty_handler(
 
     let update_project = sqlx::query!(
         "UPDATE projects SET bounty_amount = $1, bounty_currency = $2, bounty_expiry_date = $3, updated_at = NOW() WHERE id = $4",
-        current_bounty + payload.amount,
+        current_bounty + &payload.amount,
         payload.currency,
         expiry,
         project_id
@@ -118,7 +117,8 @@ async fn allocate_bounty_handler(
         return StatusCode::INTERNAL_SERVER_ERROR;
     }
     // 5. Insert escrow transaction
-    let tx_hash = format!("0x{}", Uuid::new_v4().simple());
+    let tx_hash = generate_transaction_hash();
+
     let insert_tx = sqlx::query!(
         "INSERT INTO escrow_transactions (wallet_address, project_id, type, amount, currency, transaction_hash, status, notes) VALUES ($1, $2, 'bounty_allocation', $3, $4, $5, 'completed', $6)",
         payload.wallet_address,

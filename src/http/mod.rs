@@ -11,6 +11,7 @@ mod health_check;
 mod support_tickets;
 mod types;
 mod escrow;
+mod helpers;
 
 #[derive(Clone)]
 pub struct AppState {
