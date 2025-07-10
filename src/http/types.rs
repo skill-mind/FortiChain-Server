@@ -64,4 +64,3 @@ pub struct AllocateBountyRequest {
     pub currency: String,
     pub bounty_expiry_date: Option<DateTime<Utc>>, // ISO8601 string
 }
-

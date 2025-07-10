@@ -19,12 +19,14 @@ async fn allocate_bounty_happy_path() {
 
     // Insert a user into escrow_users with a sufficient balance
     let wallet = generate_address();
-    sqlx::query("INSERT INTO escrow_users (wallet_address, balance) VALUES ($1, $2) ON CONFLICT DO NOTHING")
-        .bind(&wallet)
-        .bind(BigDecimal::from(1000))
-        .execute(&db.pool)
-        .await
-        .expect("Failed to insert user");
+    sqlx::query(
+        "INSERT INTO escrow_users (wallet_address, balance) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+    )
+    .bind(&wallet)
+    .bind(BigDecimal::from(1000))
+    .execute(&db.pool)
+    .await
+    .expect("Failed to insert user");
 
     // Insert a project owned by the user
     let contract_address = format!("0x{:0>64}", "1");
@@ -55,4 +57,3 @@ async fn allocate_bounty_happy_path() {
     let res = app.request(req).await;
     assert_eq!(res.status(), axum::http::StatusCode::OK);
 }
-

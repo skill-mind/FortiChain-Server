@@ -9,9 +9,6 @@ pub fn generate_transaction_hash() -> String {
             charset[idx] as char
         })
         .collect();
-    
-    format!(
-        "0x{}",
-        hash
-    )
+
+    format!("0x{}", hash)
 }

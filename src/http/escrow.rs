@@ -1,8 +1,8 @@
 use axum::{Json, Router, extract::State, http::StatusCode, routing::post};
 // use sqlx::Acquire;
+use super::helpers::generate_transaction_hash;
 use super::types::AllocateBountyRequest;
 use crate::AppState;
-use super::helpers::generate_transaction_hash;
 use bigdecimal::{BigDecimal, Zero};
 
 pub(crate) fn router() -> Router<AppState> {
@@ -22,9 +22,12 @@ async fn allocate_bounty_handler(
     }
     // Validate address format (0x + 64 hex chars)
     let is_valid_addr = |addr: &str| {
-        addr.starts_with("0x") && addr.len() == 66 && addr.chars().skip(2).all(|c| c.is_ascii_hexdigit())
+        addr.starts_with("0x")
+            && addr.len() == 66
+            && addr.chars().skip(2).all(|c| c.is_ascii_hexdigit())
     };
-    if !is_valid_addr(&payload.wallet_address) || !is_valid_addr(&payload.project_contract_address) {
+    if !is_valid_addr(&payload.wallet_address) || !is_valid_addr(&payload.project_contract_address)
+    {
         tracing::error!("Invalid address format");
         return StatusCode::BAD_REQUEST;
     }
@@ -69,7 +72,11 @@ async fn allocate_bounty_handler(
     .fetch_optional(&mut *tx)
     .await;
     let (project_id, owner_address, current_bounty) = match project_row {
-        Ok(Some(row)) => (row.id, row.owner_address, row.bounty_amount.unwrap_or(BigDecimal::zero())),
+        Ok(Some(row)) => (
+            row.id,
+            row.owner_address,
+            row.bounty_amount.unwrap_or(BigDecimal::zero()),
+        ),
         Ok(None) => {
             tracing::error!("Project not found");
             let _ = tx.rollback().await;
