@@ -3,12 +3,8 @@ use axum::{
     body::Body,
     http::{Request, StatusCode},
 };
-use chrono::{DateTime, Utc};
+
 use serde_json::json;
-use sqlx::Row;
-use tokio::time::Duration;
-use uuid::Uuid;
-// use sqlx::Executor;
 
 #[tokio::test]
 async fn allocate_bounty_happy_path() {
@@ -29,7 +25,7 @@ async fn allocate_bounty_happy_path() {
     .expect("Failed to insert user");
 
     // Insert a project owned by the user
-    let contract_address = format!("0x{:0>64}", "1");
+    let contract_address = generate_address();
     let _project_id: String = sqlx::query_scalar(
         "INSERT INTO projects (owner_address, contract_address, name, description, contact_info) VALUES ($1, $2, $3, $4, $5) RETURNING id::TEXT"
     )
@@ -56,4 +52,213 @@ async fn allocate_bounty_happy_path() {
         .unwrap();
     let res = app.request(req).await;
     assert_eq!(res.status(), axum::http::StatusCode::OK);
+}
+
+#[tokio::test]
+async fn allocate_bounty_invalid_amount() {
+    let app = TestApp::new().await;
+    let db = &app.db;
+    let wallet = generate_address();
+    let contract_address = generate_address();
+    // Insert user and project
+    sqlx::query(
+        "INSERT INTO escrow_users (wallet_address, balance) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+    )
+    .bind(&wallet)
+    .bind(bigdecimal::BigDecimal::from(1000))
+    .execute(&db.pool)
+    .await
+    .unwrap();
+    sqlx::query(
+        "INSERT INTO projects (owner_address, contract_address, name, description, contact_info) VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING",
+    )
+    .bind(&wallet)
+    .bind(&contract_address)
+    .bind("Test Project")
+    .bind("A test project.")
+    .bind("test@example.com")
+    .execute(&db.pool)
+    .await
+    .unwrap();
+    // Zero amount
+    let payload = json!({
+        "wallet_address": wallet,
+        "project_contract_address": contract_address,
+        "amount": "0",
+        "currency": "USD",
+        "bounty_expiry_date": chrono::Utc::now().to_rfc3339(),
+    });
+    let req = Request::post("/allocate_bounty")
+        .header("content-type", "application/json")
+        .body(Body::from(payload.to_string()))
+        .unwrap();
+    let res = app.request(req).await;
+    assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
+async fn allocate_bounty_invalid_address_format() {
+    let app: TestApp = TestApp::new().await;
+    let wallet = "not_a_valid_address".to_string();
+    let contract_address = "0x123".to_string();
+
+    let payload = json!({
+        "wallet_address": wallet,
+        "project_contract_address": contract_address,
+        "amount": "100.0",
+        "currency": "USD",
+        "bounty_expiry_date": chrono::Utc::now().to_rfc3339(),
+    });
+    let req = Request::post("/allocate_bounty")
+        .header("content-type", "application/json")
+        .body(Body::from(payload.to_string()))
+        .unwrap();
+    let res = app.request(req).await;
+    assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
+async fn allocate_bounty_escrow_user_not_found() {
+    let app = TestApp::new().await;
+    let db = &app.db;
+    let wallet = generate_address();
+    let contract_address = generate_address();
+    // Only insert project
+    sqlx::query(
+        "INSERT INTO projects (owner_address, contract_address, name, description, contact_info) VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING",
+    )
+    .bind(&wallet)
+    .bind(&contract_address)
+    .bind("Test Project")
+    .bind("A test project.")
+    .bind("test@example.com")
+    .execute(&db.pool)
+    .await
+    .unwrap();
+    let payload = json!({
+        "wallet_address": wallet,
+        "project_contract_address": contract_address,
+        "amount": "100.0",
+        "currency": "USD",
+        "bounty_expiry_date": chrono::Utc::now().to_rfc3339(),
+    });
+    let req = Request::post("/allocate_bounty")
+        .header("content-type", "application/json")
+        .body(Body::from(payload.to_string()))
+        .unwrap();
+    let res = app.request(req).await;
+    assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
+async fn allocate_bounty_insufficient_balance() {
+    let app = TestApp::new().await;
+    let db = &app.db;
+    let wallet = generate_address();
+    let contract_address = generate_address();
+    // Insert user with low balance and project
+    sqlx::query(
+        "INSERT INTO escrow_users (wallet_address, balance) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+    )
+    .bind(&wallet)
+    .bind(bigdecimal::BigDecimal::from(10))
+    .execute(&db.pool)
+    .await
+    .unwrap();
+    sqlx::query(
+        "INSERT INTO projects (owner_address, contract_address, name, description, contact_info) VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING",
+    )
+    .bind(&wallet)
+    .bind(&contract_address)
+    .bind("Test Project")
+    .bind("A test project.")
+    .bind("test@example.com")
+    .execute(&db.pool)
+    .await
+    .unwrap();
+    let payload = json!({
+        "wallet_address": wallet,
+        "project_contract_address": contract_address,
+        "amount": "100.0",
+        "currency": "USD",
+        "bounty_expiry_date": chrono::Utc::now().to_rfc3339(),
+    });
+    let req = Request::post("/allocate_bounty")
+        .header("content-type", "application/json")
+        .body(Body::from(payload.to_string()))
+        .unwrap();
+    let res = app.request(req).await;
+    assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
+async fn allocate_bounty_project_not_found() {
+    let app = TestApp::new().await;
+    let db = &app.db;
+    let wallet = generate_address();
+    let contract_address = generate_address();
+    // Insert user only
+    sqlx::query(
+        "INSERT INTO escrow_users (wallet_address, balance) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+    )
+    .bind(&wallet)
+    .bind(bigdecimal::BigDecimal::from(1000))
+    .execute(&db.pool)
+    .await
+    .unwrap();
+    let payload = json!({
+        "wallet_address": wallet,
+        "project_contract_address": contract_address,
+        "amount": "100.0",
+        "currency": "USD",
+        "bounty_expiry_date": chrono::Utc::now().to_rfc3339(),
+    });
+    let req = Request::post("/allocate_bounty")
+        .header("content-type", "application/json")
+        .body(Body::from(payload.to_string()))
+        .unwrap();
+    let res = app.request(req).await;
+    assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
+async fn allocate_bounty_user_not_owner() {
+    let app = TestApp::new().await;
+    let db = &app.db;
+    let wallet = generate_address();
+    let other_wallet = generate_address();
+    let contract_address = generate_address();
+    // Insert user and project owned by someone else
+    sqlx::query(
+        "INSERT INTO escrow_users (wallet_address, balance) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+    )
+    .bind(&wallet)
+    .bind(bigdecimal::BigDecimal::from(1000))
+    .execute(&db.pool)
+    .await
+    .unwrap();
+    sqlx::query(
+        "INSERT INTO projects (owner_address, contract_address, name, description, contact_info) VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING",
+    )
+    .bind(&other_wallet)
+    .bind(&contract_address)
+    .bind("Test Project")
+    .bind("A test project.")
+    .bind("test@example.com")
+    .execute(&db.pool)
+    .await
+    .unwrap();
+    let payload = json!({
+        "wallet_address": wallet,
+        "project_contract_address": contract_address,
+        "amount": "100.0",
+        "currency": "USD",
+        "bounty_expiry_date": chrono::Utc::now().to_rfc3339(),
+    });
+    let req = Request::post("/allocate_bounty")
+        .header("content-type", "application/json")
+        .body(Body::from(payload.to_string()))
+        .unwrap();
+    let res = app.request(req).await;
+    assert_eq!(res.status(), StatusCode::FORBIDDEN);
 }
