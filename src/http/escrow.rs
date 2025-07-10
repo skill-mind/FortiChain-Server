@@ -4,6 +4,7 @@ use super::types::AllocateBountyRequest;
 use crate::AppState;
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
+use bigdecimal::{BigDecimal, Zero};
 
 pub(crate) fn router() -> Router<AppState> {
     Router::new().route("/allocate_bounty", post(allocate_bounty_handler))
@@ -16,7 +17,7 @@ async fn allocate_bounty_handler(
 ) -> StatusCode {
     let db = &state.db;
     // Validate amount
-    if payload.amount <= 0.0 {
+    if payload.amount <= BigDecimal::zero() {
         tracing::error!("Bounty amount must be positive");
         return StatusCode::BAD_REQUEST;
     }
@@ -69,7 +70,7 @@ async fn allocate_bounty_handler(
     .fetch_optional(&mut *tx)
     .await;
     let (project_id, owner_address, current_bounty) = match project_row {
-        Ok(Some(row)) => (row.id, row.owner_address, row.bounty_amount.unwrap_or(0.0)),
+        Ok(Some(row)) => (row.id, row.owner_address, row.bounty_amount.unwrap_or(BigDecimal::zero())),
         Ok(None) => {
             tracing::error!("Project not found");
             let _ = tx.rollback().await;
@@ -100,8 +101,8 @@ async fn allocate_bounty_handler(
         return StatusCode::INTERNAL_SERVER_ERROR;
     }
     // 4. Update project bounty fields
-    let expiry = payload.bounty_expiry_date.as_deref();
-    
+    let expiry = payload.bounty_expiry_date;
+
     let update_project = sqlx::query!(
         "UPDATE projects SET bounty_amount = $1, bounty_currency = $2, bounty_expiry_date = $3, updated_at = NOW() WHERE id = $4",
         current_bounty + payload.amount,
