@@ -6,17 +6,7 @@ use serde_json::json;
 use sqlx::Row;
 use uuid::Uuid;
 
-use crate::helpers::TestApp;
-
-use hex;
-use rand::Rng;
-
-// Helper to generate a random, valid Starknet address string
-fn generate_random_address() -> String {
-    let mut rng = rand::thread_rng();
-    let address: [u8; 32] = rng.r#gen();
-    format!("0x{}", hex::encode(address))
-}
+use crate::helpers::{TestApp, generate_address};
 
 #[tokio::test]
 async fn test_get_project_success() {
@@ -24,8 +14,8 @@ async fn test_get_project_success() {
 
     let project_id = Uuid::now_v7();
     let name = "Test Project";
-    let owner_address = generate_random_address();
-    let contract_address = generate_random_address();
+    let owner_address = generate_address();
+    let contract_address = generate_address();
     let description = "A test project for verification";
     let contact_info = "test@example.com";
 
@@ -82,8 +72,8 @@ async fn test_verify_project_success() {
     let app = TestApp::new().await;
 
     let project_id = Uuid::now_v7();
-    let owner_address = generate_random_address();
-    let contract_address = generate_random_address();
+    let owner_address = generate_address();
+    let contract_address = generate_address();
     let contact_info = "test@example.com";
 
     sqlx::query(
@@ -136,7 +126,7 @@ async fn test_verify_project_success() {
 async fn test_verify_project_invalid_repository_url() {
     let app = TestApp::new().await;
     let project_id = Uuid::now_v7();
-    let owner_address = generate_random_address();
+    let owner_address = generate_address();
 
     let verify_request = json!({
         "repository_url": "invalid-url",
@@ -176,9 +166,9 @@ async fn test_verify_project_not_owner() {
     let app = TestApp::new().await;
 
     let project_id = Uuid::now_v7();
-    let owner_address = generate_random_address();
-    let different_address = generate_random_address();
-    let contract_address = generate_random_address();
+    let owner_address = generate_address();
+    let different_address = generate_address();
+    let contract_address = generate_address();
     let contact_info = "test@example.com";
 
     sqlx::query(
@@ -215,8 +205,8 @@ async fn test_verify_project_already_verified() {
     let app = TestApp::new().await;
 
     let project_id = Uuid::now_v7();
-    let owner_address = generate_random_address();
-    let contract_address = generate_random_address();
+    let owner_address = generate_address();
+    let contract_address = generate_address();
     let contact_info = "test@example.com";
 
     sqlx::query(
