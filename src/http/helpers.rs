@@ -10,5 +10,5 @@ pub fn generate_transaction_hash() -> String {
         })
         .collect();
 
-    format!("0x{}", hash)
+    format!("0x{hash}")
 }
