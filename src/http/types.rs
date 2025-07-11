@@ -1,5 +1,23 @@
+use bigdecimal::BigDecimal;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CreateProjectRequest {
+    pub owner_address: String,
+    pub contract_address: String,
+    pub name: String,
+    pub description: String,
+    pub contact_info: String,
+    pub supporting_document_path: Option<String>,
+    pub project_logo_path: Option<String>,
+    pub repository_url: Option<String>,
+    pub tags: Vec<String>,
+    pub bounty_amount: Option<BigDecimal>, // numeric(20,2)
+    pub bounty_currency: Option<String>,
+    pub bounty_expiry_date: Option<DateTime<Utc>>,
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OpenSupportTicketRequest {
