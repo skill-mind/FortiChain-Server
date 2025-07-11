@@ -32,10 +32,11 @@ async fn allocate_bounty_handler(
         return StatusCode::BAD_REQUEST;
     }
     // Start transaction
+    tracing::info!("Starting transaction for bounty allocation");
     let mut tx = match db.pool.begin().await {
         Ok(tx) => tx,
         Err(e) => {
-            tracing::error!("Failed to start transaction: {e:?}");
+            tracing::error!("Failed to start bounty allocation transaction: {e:?}");
             return StatusCode::INTERNAL_SERVER_ERROR;
         }
     };

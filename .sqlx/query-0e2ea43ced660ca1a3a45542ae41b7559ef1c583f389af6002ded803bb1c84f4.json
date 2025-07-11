@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE projects SET bounty_amount = $1, bounty_currency = $2, bounty_expiry_date = $3, updated_at = NOW() WHERE id = $4",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Numeric",
+        "Varchar",
+        "Timestamptz",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0e2ea43ced660ca1a3a45542ae41b7559ef1c583f389af6002ded803bb1c84f4"
+}
