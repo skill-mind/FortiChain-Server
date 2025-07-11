@@ -8,13 +8,13 @@ use uuid::Uuid;
 
 use crate::helpers::TestApp;
 
-use rand::Rng;
 use hex;
+use rand::Rng;
 
 // Helper to generate a random, valid Starknet address string
 fn generate_random_address() -> String {
     let mut rng = rand::thread_rng();
-    let address: [u8; 32] = rng.r#gen(); 
+    let address: [u8; 32] = rng.r#gen();
     format!("0x{}", hex::encode(address))
 }
 
@@ -75,7 +75,6 @@ async fn test_get_project_not_found() {
     let res = app.request(req).await;
 
     assert_eq!(res.status(), StatusCode::NOT_FOUND);
-
 }
 
 #[tokio::test]
@@ -116,17 +115,21 @@ async fn test_verify_project_success() {
 
     assert_eq!(res.status(), StatusCode::OK);
 
-    let updated_project = sqlx::query("SELECT is_verified, repository_url FROM projects WHERE id = $1")
-        .bind(project_id)
-        .fetch_one(&app.db.pool)
-        .await
-        .expect("Failed to fetch updated project");
+    let updated_project =
+        sqlx::query("SELECT is_verified, repository_url FROM projects WHERE id = $1")
+            .bind(project_id)
+            .fetch_one(&app.db.pool)
+            .await
+            .expect("Failed to fetch updated project");
 
     let is_verified: bool = updated_project.get("is_verified");
     let repository_url: Option<String> = updated_project.get("repository_url");
 
     assert!(is_verified);
-    assert_eq!(repository_url, Some("https://github.com/test/repo".to_string()));
+    assert_eq!(
+        repository_url,
+        Some("https://github.com/test/repo".to_string())
+    );
 }
 
 #[tokio::test]
@@ -239,7 +242,7 @@ async fn test_verify_project_already_verified() {
         "repository_url": "https://github.com/test/repo",
         "owner_address": owner_address
     });
-    
+
     let req = Request::post(&format!("/projects/{}/verify", project_id))
         .header("content-type", "application/json")
         .body(Body::from(verify_request.to_string()))
