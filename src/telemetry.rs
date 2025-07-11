@@ -8,10 +8,11 @@ use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt, util::SubscriberI
 // Setup Logger
 pub fn setup_tracing() {
     // Default to debug if no parameter is specified in the environment.
-    let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| "debug".into());
+    let env_filter = EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| "fortichain_server=debug,tower_http=debug".into());
 
-    // Format logs in JSON.
-    let formatting_layer = fmt::layer().json();
+    // Format logs in JSON without targets.
+    let formatting_layer = fmt::layer().json().with_target(false);
 
     tracing_subscriber::registry()
         .with(env_filter)

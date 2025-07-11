@@ -8,6 +8,8 @@ pub mod telemetry;
 pub use config::*;
 pub use error::*;
 pub use http::*;
+pub use middleware::*;
+pub use telemetry::*;
 // pub use db::*;
 // pub use middleware::*;
 // pub use telemetry::*;
