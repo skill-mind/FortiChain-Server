@@ -40,20 +40,34 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+
       - name: Install Rust Toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
+
       - name: Install SQLX-CLI
         run: cargo install sqlx-cli
-          --version ${SQLX_VERSION}
-          --features ${SQLX_FEATURES}
+          --version=${{ env.SQLX_VERSION }}
+          --features ${{ env.SQLX_FEATURES }}
           --no-default-features
           --locked
+
+      - name: Set executable permissions
+        run: chmod +x ./scripts/init_db.sh
+
+      - name: Migrate DB
+        run: |
+          SKIP_DOCKER=true ./scripts/init_db.sh
+
       - name: Run tests
         run: cargo test --verbose
         env:
           PORT: 8080
           APP_ENVIRONMENT: local
           DB_MAX_CONNECTIONS: 50
+          DATABASE_NAME: fortichain
+
+      - name: Fresh queries
+        run: cargo sqlx prepare
 
   fmt:
     name: Rustfmt
@@ -70,11 +84,14 @@ jobs:
   clippy:
     name: Clippy
     runs-on: ubuntu-latest
+    env:
+      SQLX_OFFLINE: true
     steps:
       - uses: actions/checkout@v4
       - name: Install the Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           components: clippy
+
       - name: Linting
         run: cargo clippy -- -D warnings

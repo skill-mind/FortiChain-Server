@@ -1,17 +1,16 @@
 use std::sync::Arc;
 
-use crate::Config;
-use crate::{Configuration, db::Db};
+use crate::{Config, Configuration, db::Db};
 use anyhow::Context;
 use axum::Router;
 use tokio::{net::TcpListener, signal};
 
-use crate::{
-    Configuration,
-    middleware::{propagate_request_id_layer, request_id_layer},
-};
+use crate::middleware::{propagate_request_id_layer, request_id_layer};
 
+mod create_project;
 mod health_check;
+mod support_tickets;
+mod types;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -25,6 +24,7 @@ pub async fn serve(configuration: Arc<Configuration>, db: Db) -> anyhow::Result<
 
     let app = api_router(app_state);
 
+    tracing::info!("Listening for requests on {}", addr);
     let listener = TcpListener::bind(addr).await?;
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
@@ -35,6 +35,8 @@ pub async fn serve(configuration: Arc<Configuration>, db: Db) -> anyhow::Result<
 pub fn api_router(app_state: AppState) -> Router {
     Router::new()
         .merge(health_check::router())
+        .merge(support_tickets::router())
+        .merge(create_project::router())
         .layer(propagate_request_id_layer())
         .layer(request_id_layer())
         .with_state(app_state)
@@ -58,5 +60,8 @@ async fn shutdown_signal() {
     #[cfg(not(unix))]
     let terminate = std::future::pending::<()>();
 
-    tokio::select! {_ = ctrl_c => {}, _ = terminate => {},}
+    tokio::select! {
+        _ = ctrl_c => {},
+        _ = terminate => {},
+    }
 }

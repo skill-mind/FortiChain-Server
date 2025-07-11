@@ -32,8 +32,9 @@ impl Configuration {
 
         let database_url = env_var("DATABASE_URL");
         let max_db_connections = env_var("DB_MAX_CONNECTIONS")
-            .parse()
+            .parse::<u32>()
             .expect("DB_MAX_CONNECTIONS is invalid or not specified.");
+
         let listen_address = SocketAddr::from((Ipv6Addr::UNSPECIFIED, app_port));
 
         // Configuration values to be safely shared across requests.
@@ -45,6 +46,11 @@ impl Configuration {
             database_url,
             max_db_connections,
         })
+    }
+
+    // DB String
+    pub fn set_db_str(&mut self, db_str: String) {
+        self.database_url = db_str;
     }
 }
 
