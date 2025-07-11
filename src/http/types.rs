@@ -55,3 +55,9 @@ pub struct AssignSupportTicketRequest {
     pub ticket_id: Uuid,
     pub support_agent_wallet: String,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ClosedProjectRequest {
+    pub project_id: String,
+    pub owner_address: String,
+}
