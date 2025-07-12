@@ -6,8 +6,8 @@ pub mod middleware;
 pub mod telemetry;
 
 pub use config::*;
+pub use db::*;
 pub use error::*;
 pub use http::*;
-// pub use db::*;
-// pub use middleware::*;
+pub use middleware::*;
 // pub use telemetry::*;
