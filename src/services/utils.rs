@@ -14,6 +14,8 @@ pub enum ServiceError {
     DatabaseError(#[from] sqlx::Error),
     #[error("System Time Error: {0}")]
     SystemTimeError(#[from] SystemTimeError),
+    #[error("Invalid Project ID")]
+    InvalidProjectId(#[from] uuid::Error),
 }
 
 impl From<ServiceError> for (StatusCode, Json<ErrorResponse>) {
@@ -28,6 +30,11 @@ impl From<ServiceError> for (StatusCode, Json<ErrorResponse>) {
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "system_time_error",
                 "Time went backwards",
+            ),
+            ServiceError::InvalidProjectId(_) => (
+                StatusCode::BAD_REQUEST,
+                "invalid_project_id",
+                "The provided project ID is invalid",
             ),
         };
 
