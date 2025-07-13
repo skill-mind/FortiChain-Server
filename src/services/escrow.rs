@@ -1,15 +1,14 @@
-use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPool;
 
 use crate::services::utils::ServiceError;
 use time::OffsetDateTime;
 
-#[derive(Debug, sqlx::FromRow, Serialize, Deserialize)]
+#[derive(Debug, sqlx::FromRow)]
 pub struct EscrowUsers {
     pub wallet_address: String,
     pub balance: i64,
-    pub created_at: String,
-    pub updated_at: String,
+    pub created_at: OffsetDateTime,
+    pub updated_at: OffsetDateTime,
 }
 
 pub struct EscrowService;
