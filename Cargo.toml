@@ -37,8 +37,7 @@ sqlx = { version = "0.8.6", features = [
     "macros",
     "bigdecimal",
     "chrono",
-    "uuid",
-    "time"
+    "uuid"
 ] }
 thiserror = "1.0"
 log = "0.4"
@@ -49,4 +48,3 @@ uuid = { version = "1.17", features = ["serde", "v7"] }
 hyper = "1.6.0"
 hex = "0.4"
 rand = "0.9.1"
-time = "0.3"

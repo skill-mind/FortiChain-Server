@@ -1,14 +1,14 @@
 use crate::services::utils::ServiceError;
 use bigdecimal::BigDecimal;
+use chrono::{DateTime, Utc};
 use sqlx::postgres::PgPool;
-use time::OffsetDateTime;
 
 #[derive(Debug, sqlx::FromRow)]
 pub struct EscrowUsers {
     pub wallet_address: String,
     pub balance: BigDecimal,
-    pub created_at: OffsetDateTime,
-    pub updated_at: Option<OffsetDateTime>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone)]
@@ -50,7 +50,7 @@ impl EscrowService {
             VALUES ($1, $2, $3)
             RETURNING wallet_address, balance, created_at, updated_at;
         "#;
-        let now = OffsetDateTime::now_utc();
+        let now = Utc::now();
         let new_account = sqlx::query_as::<_, EscrowUsers>(create_account_query)
             .bind(user_wallet)
             .bind(now)

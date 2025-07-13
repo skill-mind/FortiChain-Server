@@ -1,7 +1,7 @@
 use bigdecimal::BigDecimal;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
-use time::OffsetDateTime;
 use uuid::Uuid;
 
 use crate::services::escrow::EscrowService;
@@ -34,8 +34,8 @@ pub struct Transaction {
     pub transaction_hash: String,
     pub transaction_status: TransactionStatus,
     pub notes: Option<String>,
-    pub created_at: OffsetDateTime,
-    pub updated_at: Option<OffsetDateTime>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -67,7 +67,7 @@ impl TransactionService {
 
         // Create transaction record
         tracing::info!("Creating Deposit Transaction ");
-        let now = OffsetDateTime::now_utc();
+        let now = Utc::now();
         let query = r#"
             INSERT INTO escrow_transactions
             (wallet_address, type, amount, currency, transaction_hash, status, notes, created_at, updated_at)
