@@ -1755,6 +1755,7 @@ dependencies = [
  "sha2",
  "smallvec",
  "thiserror 2.0.12",
+ "time",
  "tokio",
  "tokio-stream",
  "tracing",
@@ -1840,6 +1841,7 @@ dependencies = [
  "sqlx-core",
  "stringprep",
  "thiserror 2.0.12",
+ "time",
  "tracing",
  "uuid",
  "whoami",
@@ -1881,6 +1883,7 @@ dependencies = [
  "sqlx-core",
  "stringprep",
  "thiserror 2.0.12",
+ "time",
  "tracing",
  "uuid",
  "whoami",
@@ -1907,6 +1910,7 @@ dependencies = [
  "serde_urlencoded",
  "sqlx-core",
  "thiserror 2.0.12",
+ "time",
  "tracing",
  "url",
  "uuid",
@@ -2019,10 +2023,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a7619e19bc266e0f9c5e6686659d394bc57973859340060a69221e57dbc0c40"
 dependencies = [
  "deranged",
+ "itoa",
  "num-conv",
  "powerfmt",
  "serde",
  "time-core",
+ "time-macros",
 ]
 
 [[package]]
@@ -2030,6 +2036,16 @@ name = "time-core"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c9e9a38711f559d9e3ce1cdb06dd7c5b8ea546bc90052da6d06bb76da74bb07c"
+
+[[package]]
+name = "time-macros"
+version = "0.2.22"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3526739392ec93fd8b359c8e98514cb3e8e021beb4e5f597b00a0221f8ed8a49"
+dependencies = [
+ "num-conv",
+ "time-core",
+]
 
 [[package]]
 name = "tiny-keccak"
