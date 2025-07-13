@@ -1,7 +1,7 @@
-use sqlx::postgres::PgPool;
-use time::OffsetDateTime;
 use crate::services::utils::ServiceError;
 use bigdecimal::BigDecimal;
+use sqlx::postgres::PgPool;
+use time::OffsetDateTime;
 
 #[derive(Debug, sqlx::FromRow)]
 pub struct EscrowUsers {

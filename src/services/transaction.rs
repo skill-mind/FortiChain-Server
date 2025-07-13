@@ -1,12 +1,11 @@
+use bigdecimal::BigDecimal;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use time::OffsetDateTime;
-use bigdecimal::BigDecimal;
 use uuid::Uuid;
 
 use crate::services::escrow::EscrowService;
 use crate::services::utils::ServiceError;
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]
 #[sqlx(type_name = "transaction_type", rename_all = "lowercase")]
@@ -67,9 +66,7 @@ impl TransactionService {
             .await?;
 
         // Create transaction record
-        tracing::info!(
-            "Creating Deposit Transaction "
-        );
+        tracing::info!("Creating Deposit Transaction ");
         let now = OffsetDateTime::now_utc();
         let query = r#"
             INSERT INTO escrow_transactions
@@ -102,7 +99,6 @@ impl TransactionService {
         tracing::info!("Updating escrow account balance");
         // Update escrow account balance
         let new_balance = escrow_account.balance + BigDecimal::from(deposit_info.amount);
-
 
         match sqlx::query(
             r#"

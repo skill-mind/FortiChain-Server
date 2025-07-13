@@ -4,7 +4,6 @@ use crate::{
 };
 use axum::{Json, Router, extract::State, http::StatusCode, routing::post};
 
-
 pub(crate) fn router() -> Router<AppState> {
     Router::new().route("/deposit", post(deposit))
 }
@@ -18,7 +17,7 @@ pub async fn deposit(state: State<AppState>, Json(payload): Json<DepositRequest>
     if let Err(e) = deposit_transaction {
         let (status_code, _) = From::from(e);
         return status_code;
-    } 
+    }
 
     tracing::info!("Deposit transaction created successfully");
     StatusCode::CREATED
