@@ -48,9 +48,7 @@ async fn create_project(db: &PgPool) -> Result<String, sqlx::Error> {
     Ok(id)
 }
 #[tokio::test]
-async fn test_deposit_successful_with_no_escrow_users() {
-
-}
+async fn test_deposit_successful_with_no_escrow_users() {}
 
 #[tokio::test]
 async fn test_deposit_successful_with_escrow_users_available() {

@@ -21,7 +21,7 @@ pub enum TransactionStatus {
     Failed,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Clone, sqlx::FromRow)]
 pub struct Transaction {
     pub id: String,
     pub wallet_address: String,
@@ -32,8 +32,8 @@ pub struct Transaction {
     pub transaction_hash: String,
     pub transaction_status: TransactionStatus,
     pub notes: Option<String>,
-    pub created_at: f64,
-    pub updated_at: f64,
+    pub created_at: OffsetDateTime,
+    pub updated_at: OffsetDateTime,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -70,16 +70,17 @@ impl TransactionService {
             transaction_hash, transaction_status, notes, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             RETURNING id, wallet_address, project_id, transaction_type as "transaction_type: TransactionType", 
-                     amount, transaction_status as "transaction_status: TransactionStatus", description, created_at, updated_at
+            amount, currency, transaction_hash, transaction_status as "transaction_status: TransactionStatus",
+            notes, created_at, updated_at
             "#;
         let transaction = sqlx::query_as::<_, Transaction>(query)
             .bind(deposit_info.wallet_address.clone())
             .bind(deposit_info.project_id)
-            .bind(TransactionType::Deposit as TransactionType)
+            .bind(TransactionType::Deposit)
             .bind(deposit_info.amount)
             .bind(deposit_info.currency)
             .bind(deposit_info.transaction_hash)
-            .bind(TransactionStatus::Pending as TransactionStatus)
+            .bind(TransactionStatus::Pending)
             .bind(deposit_info.notes)
             .bind(now)
             .bind(now)
@@ -106,11 +107,11 @@ impl TransactionService {
         sqlx::query(
             r#"
             UPDATE escrow_transactions
-            SET status = $1, updated_at = $2
+            SET transaction_status = $1, updated_at = $2
             WHERE wallet_address = $3
             "#,
         )
-        .bind(TransactionStatus::Completed as TransactionStatus)
+        .bind(TransactionStatus::Completed)
         .bind(now)
         .bind(deposit_info.wallet_address)
         .execute(&mut *tx)

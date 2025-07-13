@@ -7,12 +7,9 @@ use axum::Router;
 use tokio::{net::TcpListener, signal};
 
 mod health_check;
-<<<<<<< HEAD
-mod transaction;
-=======
 mod support_tickets;
+mod transaction;
 mod types;
->>>>>>> master
 
 #[derive(Clone)]
 pub struct AppState {
