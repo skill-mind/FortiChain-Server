@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE projects \n        SET \n            is_verified = true,\n            verification_date = $2,\n            repository_url = $3\n        WHERE id = $1\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c6f50c4e3f85a194b37b4213514a30c98f90f74cc8d6a70dc29d299b1e6365c8"
+}

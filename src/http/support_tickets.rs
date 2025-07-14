@@ -35,9 +35,9 @@ async fn open_ticket_handler(
         return StatusCode::BAD_REQUEST;
     }
 
-    tracing::info!(opened_by = %payload.opened_by, subject = %payload.subject, "Attempting to create a support ticket");
-
     let db = &state.db;
+
+    tracing::info!("Query to confirm the user opening a ticket exists");
     let user_exists_query = r#"
         SELECT EXISTS(
             SELECT 1 FROM escrow_users WHERE wallet_address = $1
@@ -67,6 +67,7 @@ async fn open_ticket_handler(
         return StatusCode::BAD_REQUEST;
     }
 
+    tracing::info!(opened_by = %payload.opened_by, subject = %payload.subject, "Attempting to create a support ticket");
     let query = r#"
         INSERT INTO request_ticket (
             subject,
@@ -93,6 +94,7 @@ async fn open_ticket_handler(
         return StatusCode::INTERNAL_SERVER_ERROR;
     }
 
+    tracing::info!("Support ticket successfully created.");
     StatusCode::CREATED
 }
 
@@ -291,8 +293,8 @@ async fn resolve_ticket_handler(
     }
 
     let resolve_query = r#"
-        UPDATE request_ticket 
-        SET 
+        UPDATE request_ticket
+        SET
             status = 'resolved'::ticket_status_type,
             resolution_response = $1,
             resolved_at = NOW()
