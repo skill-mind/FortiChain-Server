@@ -56,7 +56,6 @@ pub struct AssignSupportTicketRequest {
     pub support_agent_wallet: String,
 }
 
-
 pub struct ClosedProjectRequest {
     pub project_id: String,
     pub owner_address: String,
@@ -68,5 +67,4 @@ pub struct AllocateBountyRequest {
     pub amount: BigDecimal,
     pub currency: String,
     pub bounty_expiry_date: Option<DateTime<Utc>>, // ISO8601 string
-
 }
