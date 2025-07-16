@@ -11,7 +11,7 @@ use axum::Router;
 use tokio::{net::TcpListener, signal};
 
 mod create_project;
-// mod escrow;
+mod escrow;
 mod health_check;
 mod helpers;
 mod projects;
@@ -51,7 +51,7 @@ pub fn api_router(app_state: AppState) -> Router {
         .merge(projects::router())
         .merge(support_tickets::router())
         .merge(create_project::router())
-        // .merge(escrow::router())
+        .merge(escrow::router())
         .layer(trace_layer)
         .layer(request_id_layer)
         .layer(propagate_request_id_layer)
