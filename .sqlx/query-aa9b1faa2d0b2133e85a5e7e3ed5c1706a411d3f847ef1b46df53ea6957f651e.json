@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, owner_address, bounty_amount FROM projects WHERE contract_address = $1 FOR UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "owner_address",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "bounty_amount",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "aa9b1faa2d0b2133e85a5e7e3ed5c1706a411d3f847ef1b46df53ea6957f651e"
+}

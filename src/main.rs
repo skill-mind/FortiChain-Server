@@ -1,10 +1,10 @@
-use fortichain_server::{Configuration, db::Db, http, telemetry};
+use fortichain_server::{Configuration, db::Db, http, telemetry::setup_tracing};
 
 #[tokio::main]
 async fn main() {
     dotenvy::dotenv().ok();
 
-    telemetry::setup_tracing();
+    setup_tracing();
 
     tracing::info!("Initializing configuration");
     let config = Configuration::new();

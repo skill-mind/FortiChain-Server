@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO escrow_transactions (wallet_address, project_id, type, amount, currency, transaction_hash, status, notes) VALUES ($1, $2, 'bounty_allocation', $3, $4, $5, 'completed', $6)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Uuid",
+        "Numeric",
+        "Varchar",
+        "Varchar",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ac2d739d5641c7a937f4b8a68a35c2cbec4706f1723268e8b2c6dbe5d367871d"
+}
