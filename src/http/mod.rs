@@ -1,22 +1,12 @@
 mod health_check;
 mod support_tickets;
 mod research_report;
-mod create_project;
-mod escrow;
-mod helpers;
-mod projects;
 mod types;
 
 use std::sync::Arc;
 
-use crate::telemetry::trace_layer;
-use crate::{
-    Config, Configuration, cors_layer, normalize_path_layer,
-    propagate_request_id_layer, request_id_layer, timeout_layer,
-    db::Db,
-};
+use crate::{Config, Configuration, db::Db};
 use anyhow::Context;
-use axum::Router;
 use tokio::{net::TcpListener, signal};
 
 #[derive(Clone)]
@@ -25,10 +15,18 @@ pub struct AppState {
     pub configuration: Config,
 }
 
+/// Compose all API routes under the root
+pub fn api_router(state: AppState) -> Router {
+    Router::new()
+        .merge(health_router())
+        .merge(report_router())
+        .merge(support_router())
+        .with_state(state)
+}
+
 pub async fn serve(configuration: Arc<Configuration>, db: Db) -> anyhow::Result<()> {
     let addr = configuration.listen_address;
     let app_state = AppState { configuration, db };
-
     let app = api_router(app_state);
 
     tracing::info!("Listening for requests on {}", addr);
@@ -40,34 +38,16 @@ pub async fn serve(configuration: Arc<Configuration>, db: Db) -> anyhow::Result<
 }
 
 pub fn api_router(app_state: AppState) -> Router {
-    let trace_layer = trace_layer();
-    let request_id_layer = request_id_layer();
-    let propagate_request_id_layer = propagate_request_id_layer();
-    let cors_layer = cors_layer();
-    let timeout_layer = timeout_layer();
-    let normalize_path_layer = normalize_path_layer();
-
     Router::new()
         .merge(health_check::router())
         .merge(research_report::router())
         .merge(support_tickets::router())
-        .merge(create_project::router())
-        .merge(escrow::router())
-        .merge(projects::router())
-        .layer(trace_layer)
-        .layer(request_id_layer)
-        .layer(propagate_request_id_layer)
-        .layer(cors_layer)
-        .layer(timeout_layer)
-        .layer(normalize_path_layer)
         .with_state(app_state)
 }
 
 async fn shutdown_signal() {
     let ctrl_c = async {
-        signal::ctrl_c()
-            .await
-            .expect("failed to configure ctrl+c handler");
+        signal::ctrl_c().await.expect("failed to configure ctrl+c handler");
     };
 
     #[cfg(unix)]

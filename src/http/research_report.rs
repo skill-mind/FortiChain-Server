@@ -1,24 +1,44 @@
-// src/http/research_report.rs
-use axum::{extract::State, Json, http::StatusCode, response::IntoResponse, routing::post, Router};
-use serde_json::json;
+use axum::{
+    extract::{State, Json},
+    http::StatusCode,
+    response::IntoResponse,
+    routing::post,
+    Router,
+};
+use crate::{
+    db::Db,
+    http::{types::{NewReportRequest, ReportResponse}, AppState},
+};
 use uuid::Uuid;
 
-use crate::{db::Db, models::{NewResearchReport, ResearchReport}, http::AppState};
-
-// Handler for POST /reports
 async fn create_report(
     State(app_state): State<AppState>,
-    Json(payload): Json<NewResearchReport>,
+    Json(payload): Json<NewReportRequest>,
 ) -> impl IntoResponse {
-    match app_state.db.create_report(payload).await {
-        Ok(report) => {
-            // TODO: publish notification to validators
-            // e.g., notification::notify_validators(&report).await;
-            (StatusCode::CREATED, Json(report))
+    match app_state.db.create_report(&payload).await {
+        Ok(report_model) => {
+            // Fire-and-forget notification
+            let _ = tokio::spawn(crate::notifications::notify_validators(
+                report_model.id,
+                report_model.project_id,
+            ));
+
+            let resp = ReportResponse {
+                id: report_model.id,
+                title: report_model.title,
+                body: report_model.body,
+                project_id: report_model.project_id,
+                researcher_id: report_model.researcher_id,
+                created_at: report_model.created_at.to_rfc3339(),
+            };
+            (StatusCode::CREATED, Json(resp))
         }
         Err(err) => {
-            eprintln!("DB error creating report: {}", err);
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": "Could not create report"})))
+            tracing::error!("Failed to create report: {:?}", err);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": "Could not create report" })),
+            )
         }
     }
 }
