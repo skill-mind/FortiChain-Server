@@ -17,7 +17,7 @@ mod helpers;
 mod projects;
 mod support_tickets;
 mod types;
-
+mod validators;
 #[derive(Clone)]
 pub struct AppState {
     pub db: Db,
