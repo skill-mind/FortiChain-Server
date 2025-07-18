@@ -2,6 +2,7 @@ use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+<<<<<<< HEAD
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreateProjectRequest {
@@ -18,6 +19,8 @@ pub struct CreateProjectRequest {
     pub bounty_currency: Option<String>,
     pub bounty_expiry_date: Option<DateTime<Utc>>,
 }
+=======
+>>>>>>> 5b5c072 (CX)
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OpenSupportTicketRequest {
@@ -43,6 +46,7 @@ pub struct SupportTicket {
     pub updated_at: String,
 }
 
+<<<<<<< HEAD
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ResolveSupportTicketRequest {
     pub ticket_id: String,
@@ -69,4 +73,30 @@ pub struct AllocateBountyRequest {
     pub amount: BigDecimal,
     pub currency: String,
     pub bounty_expiry_date: Option<DateTime<Utc>>, // ISO8601 string
+=======
+// --- NEW TYPES FOR REPORT SUBMISSION ---
+
+/// Payload for creating a new research report
+#[derive(Debug, Deserialize)]
+pub struct NewReportRequest {
+    /// Title of the report
+    pub title: String,
+    /// Body/content of the report
+    pub body: String,
+    /// Associated project UUID
+    pub project_id: Uuid,
+    /// Researcher (reporter) UUID
+    pub reported_by: Uuid,
+}
+
+/// Shape of a report returned after creation
+#[derive(Debug, Serialize)]
+pub struct ReportResponse {
+    pub id: Uuid,
+    pub title: String,
+    pub body: String,
+    pub project_id: Uuid,
+    pub researcher_id: Uuid,
+    pub created_at: String,
+>>>>>>> 5b5c072 (CX)
 }
