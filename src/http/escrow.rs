@@ -1,9 +1,9 @@
-use axum::{Json, Router, extract::State, http::StatusCode, routing::post};
-// use sqlx::Acquire;
 use super::helpers::generate_transaction_hash;
 use super::types::AllocateBountyRequest;
 use crate::AppState;
+use axum::{Json, Router, extract::State, http::StatusCode, routing::post};
 use bigdecimal::{BigDecimal, Zero};
+// use sqlx::Acquire;
 
 pub(crate) fn router() -> Router<AppState> {
     Router::new().route("/allocate_bounty", post(allocate_bounty_handler))

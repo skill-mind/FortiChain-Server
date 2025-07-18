@@ -65,6 +65,12 @@ pub struct AssignSupportTicketRequest {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct ClosedProjectRequest {
+    pub project_id: String,
+    pub owner_address: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct AllocateBountyRequest {
     pub wallet_address: String,
     pub project_contract_address: String,
