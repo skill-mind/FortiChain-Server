@@ -40,7 +40,7 @@ pub struct SupportTicket {
     pub resolved: bool,
     pub created_at: String,
     pub resolved_at: Option<String>,
-    pub updated_at: String,
+    pub updated_at: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

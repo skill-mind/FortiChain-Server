@@ -8,6 +8,7 @@ use serde_json::json;
 use sqlx::Row;
 use tokio::time::Duration;
 use uuid::Uuid;
+use axum::body::to_bytes;
 // use sqlx::Executor;
 
 #[tokio::test]
@@ -625,3 +626,64 @@ async fn resolve_ticket_happy_path() {
     );
     assert!(resolved_at.is_some());
 }
+
+#[tokio::test]
+async fn list_tickets_handler_filters_and_paginates() {
+    let app = TestApp::new().await;
+    let db = &app.db;
+    let wallet = generate_address();
+    sqlx::query("INSERT INTO escrow_users (wallet_address) VALUES ($1) ON CONFLICT DO NOTHING")
+        .bind(&wallet)
+        .execute(&db.pool)
+        .await
+        .expect("Failed to insert user");
+
+    // Insert tickets with different statuses and creation dates
+    let statuses = ["open", "assigned", "in_progress", "resolved", "closed", "reopened"];
+    for (i, status) in statuses.iter().enumerate() {
+        let subject = format!("Ticket {}", i);
+        let message = format!("Message {}", i);
+        let created_at = chrono::Utc::now() - chrono::Duration::minutes(i as i64);
+        sqlx::query(
+            "INSERT INTO request_ticket (id, subject, message, opened_by, status, response_subject, created_at) VALUES ($1, $2, $3, $4, $5::ticket_status_type, $6, $7)"
+        )
+        .bind(Uuid::new_v4())
+        .bind(&subject)
+        .bind(&message)
+        .bind(&wallet)
+        .bind(status)
+        .bind(&subject)
+        .bind(created_at)
+        .execute(&db.pool)
+        .await
+        .expect("Failed to insert ticket");
+    }
+
+    // Default: should return only active statuses, sorted asc by created_at
+    let req = Request::get("/tickets").body(Body::empty()).unwrap();
+    let res = app.request(req).await;
+    assert_eq!(res.status(), StatusCode::OK);
+    let body = to_bytes(res.into_body(), usize::MAX).await.unwrap();
+    let tickets: Vec<serde_json::Value> = serde_json::from_slice(&body).unwrap();
+    // Should not include resolved/closed
+    for t in &tickets {
+        let status = t["status"].as_str().unwrap();
+        assert!(matches!(status, "open" | "assigned" | "in_progress" | "awaiting_user" | "reopened"));
+    }
+    // Sorted by created_at ascending
+    let created_ats: Vec<_> = tickets.iter().map(|t| t["created_at"].as_str().unwrap()).collect();
+    let mut sorted = created_ats.clone();
+    sorted.sort();
+    assert_eq!(created_ats, sorted);
+
+    // Custom: status=assigned,reopened&sort=desc&limit=1&offset=0
+    let req = Request::get("/tickets?status=assigned,reopened&sort=desc&limit=1&offset=0").body(Body::empty()).unwrap();
+    let res = app.request(req).await;
+    assert_eq!(res.status(), StatusCode::OK);
+    let body = to_bytes(res.into_body(), usize::MAX).await.unwrap();
+    let tickets: Vec<serde_json::Value> = serde_json::from_slice(&body).unwrap();
+    assert_eq!(tickets.len(), 1);
+    let status = tickets[0]["status"].as_str().unwrap();
+    assert!(status == "assigned" || status == "reopened");
+}
+

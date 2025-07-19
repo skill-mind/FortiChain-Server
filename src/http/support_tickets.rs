@@ -352,7 +352,7 @@ async fn list_tickets_handler(
 
     // Build SQL
     let sql = format!(
-        "SELECT id::text, subject, message, document_path, opened_by, status::text, assigned_to, response_subject, resolution_response, resolved, created_at::text, resolved_at::text, updated_at::text FROM request_ticket WHERE status = ANY($1) ORDER BY created_at {} LIMIT $2 OFFSET $3",
+        "SELECT id::text, subject, message, document_path, opened_by, status::text, assigned_to, response_subject, resolution_response, resolved, created_at::text, resolved_at::text, updated_at::text FROM request_ticket WHERE status::text = ANY($1) ORDER BY created_at {} LIMIT $2 OFFSET $3",
         if sort.eq_ignore_ascii_case("desc") { "DESC" } else { "ASC" }
     );
 
