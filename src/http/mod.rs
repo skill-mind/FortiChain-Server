@@ -16,6 +16,7 @@ mod health_check;
 mod helpers;
 mod projects;
 mod support_tickets;
+mod transaction;
 mod types;
 
 #[derive(Clone)]
@@ -48,6 +49,7 @@ pub fn api_router(app_state: AppState) -> Router {
 
     Router::new()
         .merge(health_check::router())
+        .merge(transaction::router())
         .merge(projects::router())
         .merge(support_tickets::router())
         .merge(create_project::router())

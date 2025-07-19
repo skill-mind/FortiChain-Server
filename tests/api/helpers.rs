@@ -42,7 +42,7 @@ impl TestApp {
 }
 
 pub async fn create_test_db(db_str: &str) -> String {
-    let (db_str, uuid_db) = db_str_and_uuid(db_str);
+    let (mut db_str, uuid_db) = db_str_and_uuid(db_str);
 
     let mut connection = PgConnection::connect(&db_str)
         .await
@@ -52,6 +52,7 @@ pub async fn create_test_db(db_str: &str) -> String {
         .await
         .expect("Failed to create test database.");
 
+    db_str.push_str(&uuid_db);
     db_str.to_owned()
 }
 
