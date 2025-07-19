@@ -1,9 +1,15 @@
-use axum::{Json, Router, extract::State, http::StatusCode, routing::post};
+use axum::{
+    Json, Router,
+    extract::{Query, State},
+    http::StatusCode,
+    routing::{get, post},
+};
 use sqlx::prelude::*;
 use uuid::Uuid;
 
 use super::types::{
-    AssignSupportTicketRequest, OpenSupportTicketRequest, ResolveSupportTicketRequest,
+    AssignSupportTicketRequest, ListSupportedTickets, OpenSupportTicketRequest,
+    ResolveSupportTicketRequest, SupportTicketSummary,
 };
 use crate::AppState;
 
@@ -12,6 +18,7 @@ pub(crate) fn router() -> Router<AppState> {
         .route("/open_ticket", post(open_ticket_handler))
         .route("/assign_ticket", post(assign_ticket_handler))
         .route("/resolve_ticket", post(resolve_ticket_handler))
+        .route("/tickets", get(list_ticket_handler))
     //   .route("/close_ticket", post(close_ticket_handler))
     //   .route("/unassign_ticket", post(unassign_ticket_handler))
 }
@@ -324,4 +331,42 @@ async fn resolve_ticket_handler(
             StatusCode::INTERNAL_SERVER_ERROR
         }
     }
+}
+
+#[tracing::instrument(name = "List Tickets", skip(state, params))]
+async fn list_ticket_handler(
+    State(state): State<AppState>,
+    Query(params): Query<ListSupportedTickets>,
+) -> Result<Json<Vec<SupportTicketSummary>>, StatusCode> {
+    let page = params.page.unwrap_or(1).max(1);
+    let page_size = params.page_size.unwrap_or(20).clamp(1, 100);
+    let offset = ((page - 1) * page_size) as i64;
+    let limit = page_size as i64;
+
+    let summaries = sqlx::query_as!(
+        SupportTicketSummary,
+        r#"
+        SELECT
+          id                 AS ticket_id,
+          status,
+          subject,
+          created_at,
+          updated_at
+        FROM request_ticket
+        WHERE opened_by = $1
+        ORDER BY created_at DESC
+        LIMIT $2 OFFSET $3
+        "#,
+        params.opened_by,
+        limit,
+        offset,
+    )
+    .fetch_all(&state.db)
+    .await
+    .map_err(|err| {
+        tracing::error!("list_tickets failed: {:?}", err);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    Ok(Json(summaries))
 }

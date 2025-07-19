@@ -70,3 +70,19 @@ pub struct AllocateBountyRequest {
     pub currency: String,
     pub bounty_expiry_date: Option<DateTime<Utc>>, // ISO8601 string
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ListSupportedTickets {
+    pub opened_by: String,
+    pub page: Option<u32>,
+    pub page_size: Option<u32>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SupportTicketSummary {
+    pub ticket_id: Uuid,
+    pub status: String,
+    pub subject: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
