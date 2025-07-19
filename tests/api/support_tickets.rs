@@ -1,4 +1,5 @@
 use crate::helpers::{TestApp, generate_address};
+use axum::body::to_bytes;
 use axum::{
     body::Body,
     http::{Request, StatusCode},
@@ -624,4 +625,202 @@ async fn resolve_ticket_happy_path() {
         "Your account has been successfully restored. Please try logging in again."
     );
     assert!(resolved_at.is_some());
+}
+
+#[tokio::test]
+async fn list_tickets_handler_filters_and_paginates() {
+    let app = TestApp::new().await;
+    let db = &app.db;
+    let wallet = generate_address();
+    sqlx::query("INSERT INTO escrow_users (wallet_address) VALUES ($1) ON CONFLICT DO NOTHING")
+        .bind(&wallet)
+        .execute(&db.pool)
+        .await
+        .expect("Failed to insert user");
+
+    // Insert tickets with different statuses and creation dates
+    let statuses = [
+        "open",
+        "assigned",
+        "in_progress",
+        "resolved",
+        "closed",
+        "reopened",
+    ];
+    for (i, status) in statuses.iter().enumerate() {
+        let subject = format!("Ticket {}", i);
+        let message = format!("Message {}", i);
+        let created_at = chrono::Utc::now() - chrono::Duration::minutes(i as i64);
+        sqlx::query(
+            "INSERT INTO request_ticket (id, subject, message, opened_by, status, response_subject, created_at) VALUES ($1, $2, $3, $4, $5::ticket_status_type, $6, $7)"
+        )
+        .bind(Uuid::new_v4())
+        .bind(&subject)
+        .bind(&message)
+        .bind(&wallet)
+        .bind(status)
+        .bind(&subject)
+        .bind(created_at)
+        .execute(&db.pool)
+        .await
+        .expect("Failed to insert ticket");
+    }
+
+    // Default: should return only active statuses, sorted asc by created_at
+    let req = Request::get("/tickets").body(Body::empty()).unwrap();
+    let res = app.request(req).await;
+    assert_eq!(res.status(), StatusCode::OK);
+    let body = to_bytes(res.into_body(), usize::MAX).await.unwrap();
+    let tickets: Vec<serde_json::Value> = serde_json::from_slice(&body).unwrap();
+    // Should not include resolved/closed
+    for t in &tickets {
+        let status = t["status"].as_str().unwrap();
+        assert!(matches!(
+            status,
+            "open" | "assigned" | "in_progress" | "awaiting_user" | "reopened"
+        ));
+    }
+    // Sorted by created_at ascending
+    let created_ats: Vec<_> = tickets
+        .iter()
+        .map(|t| t["created_at"].as_str().unwrap())
+        .collect();
+    let mut sorted = created_ats.clone();
+    sorted.sort();
+    assert_eq!(created_ats, sorted);
+
+    // Custom: status=assigned,reopened&sort=desc&limit=1&offset=0
+    let req = Request::get("/tickets?status=assigned,reopened&sort=desc&limit=1&offset=0")
+        .body(Body::empty())
+        .unwrap();
+    let res = app.request(req).await;
+    assert_eq!(res.status(), StatusCode::OK);
+    let body = to_bytes(res.into_body(), usize::MAX).await.unwrap();
+    let tickets: Vec<serde_json::Value> = serde_json::from_slice(&body).unwrap();
+    assert_eq!(tickets.len(), 1);
+    let status = tickets[0]["status"].as_str().unwrap();
+    assert!(status == "assigned" || status == "reopened");
+}
+
+#[tokio::test]
+async fn list_tickets_handler_empty_result() {
+    let app = TestApp::new().await;
+    // No tickets inserted
+    let req = Request::get("/tickets?status=resolved")
+        .body(Body::empty())
+        .unwrap();
+    let res = app.request(req).await;
+    assert_eq!(res.status(), StatusCode::OK);
+    let body = to_bytes(res.into_body(), usize::MAX).await.unwrap();
+    let tickets: Vec<serde_json::Value> = serde_json::from_slice(&body).unwrap();
+    assert!(tickets.is_empty());
+}
+
+#[tokio::test]
+async fn list_tickets_handler_invalid_limit_offset() {
+    let app = TestApp::new().await;
+    let db = &app.db;
+    let wallet = generate_address();
+    sqlx::query("INSERT INTO escrow_users (wallet_address) VALUES ($1) ON CONFLICT DO NOTHING")
+        .bind(&wallet)
+        .execute(&db.pool)
+        .await
+        .expect("Failed to insert user");
+    // Insert one ticket
+    sqlx::query(
+        "INSERT INTO request_ticket (id, subject, message, opened_by, status, response_subject, created_at) VALUES ($1, $2, $3, $4, $5::ticket_status_type, $6, $7)"
+    )
+    .bind(Uuid::new_v4())
+    .bind("Subject")
+    .bind("Message")
+    .bind(&wallet)
+    .bind("open")
+    .bind("Subject")
+    .bind(chrono::Utc::now())
+    .execute(&db.pool)
+    .await
+    .expect("Failed to insert ticket");
+
+    // Negative limit and offset should clamp to valid values
+    let req = Request::get("/tickets?limit=-10&offset=-5")
+        .body(Body::empty())
+        .unwrap();
+    let res = app.request(req).await;
+    assert_eq!(res.status(), StatusCode::OK);
+    let body = to_bytes(res.into_body(), usize::MAX).await.unwrap();
+    let tickets: Vec<serde_json::Value> = serde_json::from_slice(&body).unwrap();
+    assert!(!tickets.is_empty());
+}
+
+#[tokio::test]
+async fn list_tickets_handler_large_limit() {
+    let app = TestApp::new().await;
+    let db = &app.db;
+    let wallet = generate_address();
+    sqlx::query("INSERT INTO escrow_users (wallet_address) VALUES ($1) ON CONFLICT DO NOTHING")
+        .bind(&wallet)
+        .execute(&db.pool)
+        .await
+        .expect("Failed to insert user");
+    // Insert 5 tickets
+    for i in 0..5 {
+        sqlx::query(
+            "INSERT INTO request_ticket (id, subject, message, opened_by, status, response_subject, created_at) VALUES ($1, $2, $3, $4, $5::ticket_status_type, $6, $7)"
+        )
+        .bind(Uuid::new_v4())
+        .bind(format!("Subject {i}"))
+        .bind(format!("Message {i}"))
+        .bind(&wallet)
+        .bind("open")
+        .bind(format!("Subject {i}"))
+        .bind(chrono::Utc::now())
+        .execute(&db.pool)
+        .await
+        .expect("Failed to insert ticket");
+    }
+    // Limit larger than actual tickets
+    let req = Request::get("/tickets?limit=100")
+        .body(Body::empty())
+        .unwrap();
+    let res = app.request(req).await;
+    assert_eq!(res.status(), StatusCode::OK);
+    let body = to_bytes(res.into_body(), usize::MAX).await.unwrap();
+    let tickets: Vec<serde_json::Value> = serde_json::from_slice(&body).unwrap();
+    assert!(tickets.len() <= 5);
+}
+
+#[tokio::test]
+async fn list_tickets_handler_invalid_status_param() {
+    let app = TestApp::new().await;
+    let db = &app.db;
+    let wallet = generate_address();
+    sqlx::query("INSERT INTO escrow_users (wallet_address) VALUES ($1) ON CONFLICT DO NOTHING")
+        .bind(&wallet)
+        .execute(&db.pool)
+        .await
+        .expect("Failed to insert user");
+    // Insert a ticket with status "open"
+    sqlx::query(
+        "INSERT INTO request_ticket (id, subject, message, opened_by, status, response_subject, created_at) VALUES ($1, $2, $3, $4, $5::ticket_status_type, $6, $7)"
+    )
+    .bind(Uuid::new_v4())
+    .bind("Subject")
+    .bind("Message")
+    .bind(&wallet)
+    .bind("open")
+    .bind("Subject")
+    .bind(chrono::Utc::now())
+    .execute(&db.pool)
+    .await
+    .expect("Failed to insert ticket");
+
+    // Query with a status that doesn't exist
+    let req = Request::get("/tickets?status=not_a_status")
+        .body(Body::empty())
+        .unwrap();
+    let res = app.request(req).await;
+    assert_eq!(res.status(), StatusCode::OK);
+    let body = to_bytes(res.into_body(), usize::MAX).await.unwrap();
+    let tickets: Vec<serde_json::Value> = serde_json::from_slice(&body).unwrap();
+    assert!(tickets.is_empty());
 }
