@@ -26,7 +26,7 @@ pub struct OpenSupportTicketRequest {
     pub opened_by: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct SupportTicket {
     pub id: String,
     pub subject: String,
@@ -40,7 +40,15 @@ pub struct SupportTicket {
     pub resolved: bool,
     pub created_at: String,
     pub resolved_at: Option<String>,
-    pub updated_at: String,
+    pub updated_at: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ListTicketsQuery {
+    pub status: Option<String>, // comma-separated
+    pub sort: Option<String>,   // "asc" or "desc"
+    pub limit: Option<i64>,
+    pub offset: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
