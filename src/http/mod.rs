@@ -2,12 +2,18 @@ mod health_check;
 mod support_tickets;
 mod research_report;
 mod types;
+mod create_project;
+mod escrow;
+mod helpers;
+mod projects;
+mod transaction;
 
 use std::sync::Arc;
 
 use crate::{Config, Configuration, db::Db};
 use anyhow::Context;
 use tokio::{net::TcpListener, signal};
+use axum::Router;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -16,12 +22,14 @@ pub struct AppState {
 }
 
 /// Compose all API routes under the root
-pub fn api_router(state: AppState) -> Router {
+pub fn api_router(app_state: AppState) -> Router {
     Router::new()
-        .merge(health_router())
-        .merge(report_router())
-        .merge(support_router())
-        .with_state(state)
+        .merge(health_check::router())
+        .merge(research_report::router())
+        .merge(support_tickets::router())
+        .merge(transaction::router())
+        .merge(projects::router())
+        .with_state(app_state)
 }
 
 pub async fn serve(configuration: Arc<Configuration>, db: Db) -> anyhow::Result<()> {
@@ -35,14 +43,6 @@ pub async fn serve(configuration: Arc<Configuration>, db: Db) -> anyhow::Result<
         .with_graceful_shutdown(shutdown_signal())
         .await
         .context("error running HTTP server.")
-}
-
-pub fn api_router(app_state: AppState) -> Router {
-    Router::new()
-        .merge(health_check::router())
-        .merge(research_report::router())
-        .merge(support_tickets::router())
-        .with_state(app_state)
 }
 
 async fn shutdown_signal() {

@@ -1,9 +1,12 @@
+use axum::extract::Query;
+use axum::routing::get;
 use axum::{Json, Router, extract::State, http::StatusCode, routing::post};
 use sqlx::prelude::*;
 use uuid::Uuid;
 
 use super::types::{
-    AssignSupportTicketRequest, OpenSupportTicketRequest, ResolveSupportTicketRequest,
+    AssignSupportTicketRequest, ListTicketsQuery, OpenSupportTicketRequest,
+    ResolveSupportTicketRequest, SupportTicket,
 };
 use crate::AppState;
 
@@ -12,6 +15,7 @@ pub(crate) fn router() -> Router<AppState> {
         .route("/open_ticket", post(open_ticket_handler))
         .route("/assign_ticket", post(assign_ticket_handler))
         .route("/resolve_ticket", post(resolve_ticket_handler))
+        .route("/tickets", get(list_tickets_handler))
     //   .route("/close_ticket", post(close_ticket_handler))
     //   .route("/unassign_ticket", post(unassign_ticket_handler))
 }
@@ -324,4 +328,67 @@ async fn resolve_ticket_handler(
             StatusCode::INTERNAL_SERVER_ERROR
         }
     }
+}
+
+/// GET /tickets?status=open,assigned&sort=asc&limit=20&offset=0
+#[tracing::instrument(name = "list_tickets_handler", skip(state))]
+async fn list_tickets_handler(
+    state: State<AppState>,
+    Query(params): Query<ListTicketsQuery>,
+) -> Result<Json<Vec<SupportTicket>>, StatusCode> {
+    let db = &state.db;
+    // Default active statuses
+    let default_statuses = [
+        "open",
+        "assigned",
+        "in_progress",
+        "awaiting_user",
+        "reopened",
+    ];
+    let statuses: Vec<String> = params
+        .status
+        .as_ref()
+        .map(|s| {
+            s.split(',')
+                .map(|v| v.trim().to_string())
+                .filter(|v| !v.is_empty())
+                .collect()
+        })
+        .filter(|v: &Vec<String>| !v.is_empty())
+        .unwrap_or_else(|| default_statuses.iter().map(|s| s.to_string()).collect());
+    let sort = params.sort.as_deref().unwrap_or("asc");
+    let limit = params.limit.unwrap_or(20).clamp(1, 100);
+    let offset = params.offset.unwrap_or(0).max(0);
+
+    // Build SQL
+    let sql = format!(
+        "SELECT id::text, subject, message, document_path, opened_by, status::text, assigned_to, response_subject, resolution_response, resolved, created_at::text, resolved_at::text, updated_at::text FROM request_ticket WHERE status::text = ANY($1) ORDER BY created_at {} LIMIT $2 OFFSET $3",
+        if sort.eq_ignore_ascii_case("desc") {
+            "DESC"
+        } else {
+            "ASC"
+        }
+    );
+
+    tracing::info!(
+        statuses = ?statuses,
+        limit,
+        offset,
+        "Fetching support tickets with provided filters"
+    );
+
+    let rows = match sqlx::query_as::<_, SupportTicket>(&sql)
+        .bind(&statuses)
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(&db.pool)
+        .await
+    {
+        Ok(rows) => rows,
+        Err(e) => {
+            tracing::error!(error = ?e, "Failed to fetch tickets");
+            return Err(StatusCode::INTERNAL_SERVER_ERROR);
+        }
+    };
+    Ok(Json(rows))
 }
