@@ -1,5 +1,6 @@
 use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
+use garde::Validate;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -19,10 +20,13 @@ pub struct CreateProjectRequest {
     pub bounty_expiry_date: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Validate)]
 pub struct OpenSupportTicketRequest {
+    #[garde(ascii, length(min = 5, max = 100))]
     pub subject: String,
+    #[garde(ascii, length(min = 10, max = 5000))]
     pub message: String,
+    #[garde(ascii, length(bytes, equal = 66))]
     pub opened_by: String,
 }
 
@@ -43,18 +47,13 @@ pub struct SupportTicket {
     pub updated_at: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct ListTicketsQuery {
-    pub status: Option<String>, // comma-separated
-    pub sort: Option<String>,   // "asc" or "desc"
-    pub limit: Option<i64>,
-    pub offset: Option<i64>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct ResolveSupportTicketRequest {
-    pub ticket_id: String,
+    #[garde(skip)]
+    pub ticket_id: Uuid,
+    #[garde(ascii, length(min = 10, max = 5000))]
     pub resolution_response: String,
+    #[garde(ascii, length(bytes, equal = 66))]
     pub resolved_by: String,
 }
 

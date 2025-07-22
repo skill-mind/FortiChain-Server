@@ -138,7 +138,7 @@ async fn test_verify_project_invalid_repository_url() {
         .body(Body::from(verify_request.to_string()))
         .unwrap();
     let res = app.request(req).await;
-    assert_eq!(res.status(), StatusCode::UNPROCESSABLE_ENTITY);
+    assert_eq!(res.status(), StatusCode::BAD_REQUEST);
 }
 
 #[tokio::test]
@@ -158,7 +158,7 @@ async fn test_verify_project_invalid_owner_address() {
         .unwrap();
     let res = app.request(req).await;
 
-    assert_eq!(res.status(), StatusCode::UNPROCESSABLE_ENTITY);
+    assert_eq!(res.status(), StatusCode::BAD_REQUEST);
 }
 
 #[tokio::test]

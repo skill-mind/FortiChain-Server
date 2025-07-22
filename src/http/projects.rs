@@ -1,15 +1,15 @@
-// src/http/projects.rs
+use crate::Result;
+use crate::{AppState, Error};
 use axum::{
     Router,
     extract::{Path, State},
     response::Json,
     routing::{get, post},
 };
+use garde::Validate;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
-
-use crate::{AppState, Error};
 
 pub(crate) fn router() -> Router<AppState> {
     Router::new()
@@ -17,9 +17,11 @@ pub(crate) fn router() -> Router<AppState> {
         .route("/projects/{project_id}", get(get_project))
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Validate)]
 pub struct VerifyProjectRequest {
+    #[garde(url)]
     pub repository_url: String,
+    #[garde(custom(is_valid_starknet_address))]
     pub owner_address: String,
 }
 
@@ -48,59 +50,15 @@ pub async fn verify_project(
     State(state): State<AppState>,
     Path(project_id): Path<Uuid>,
     Json(request): Json<VerifyProjectRequest>,
-) -> Result<Json<VerifyProjectResponse>, Error> {
-    // Validate repository URL format
-    if !is_valid_repository_url(&request.repository_url) {
-        tracing::error!(
-            project_id = %project_id,
-            repository_url = %request.repository_url,
-            "Invalid repository URL format"
-        );
-        return Err(Error::unprocessable_entity([(
-            "repository_url",
-            "Invalid repository URL format",
-        )]));
-    }
+) -> Result<Json<VerifyProjectResponse>> {
+    request.validate()?;
 
-    // Validate owner address format
-    if !is_valid_starknet_address(&request.owner_address) {
-        tracing::error!(
-            project_id = %project_id,
-            owner_address = %request.owner_address,
-            "Invalid Starknet address format"
-        );
-        return Err(Error::unprocessable_entity([(
-            "owner_address",
-            "Invalid Starknet address format",
-        )]));
-    }
-
-    // Check if project exists and get current state
     tracing::info!(
         project_id = %project_id,
         "Fetching project details for verification"
     );
-    let project = match get_project_by_id(&state.db.pool, project_id).await {
-        Ok(project) => {
-            tracing::debug!(
-                project_id = %project_id,
-                is_verified = %project.is_verified,
-                owner_address = %project.owner_address,
-                "Retrieved project details"
-            );
-            project
-        }
-        Err(e) => {
-            tracing::error!(
-                project_id = %project_id,
-                error = %e,
-                "Failed to fetch project details"
-            );
-            return Err(e);
-        }
-    };
+    let project = get_project_by_id(&state.db.pool, project_id).await?;
 
-    // Check if the requester is the project owner
     if project.owner_address != request.owner_address {
         tracing::error!(
             project_id = %project_id,
@@ -165,7 +123,7 @@ async fn get_project_by_id(pool: &PgPool, project_id: Uuid) -> Result<ProjectRes
     let project = sqlx::query_as!(
         ProjectResponse,
         r#"
-        SELECT 
+        SELECT
             id,
             name,
             owner_address,
@@ -175,17 +133,13 @@ async fn get_project_by_id(pool: &PgPool, project_id: Uuid) -> Result<ProjectRes
             verification_date,
             repository_url,
             created_at
-        FROM projects 
+        FROM projects
         WHERE id = $1
         "#,
         project_id
     )
     .fetch_optional(pool)
-    .await
-    .map_err(|e| {
-        tracing::error!("Database error when fetching project: {}", e);
-        Error::unprocessable_entity([("database", "Failed to fetch project")])
-    })?;
+    .await?;
 
     project.ok_or(Error::NotFound)
 }
@@ -195,11 +149,11 @@ async fn verify_project_in_db(
     project_id: Uuid,
     repository_url: &str,
     verification_date: chrono::DateTime<chrono::Utc>,
-) -> Result<(), sqlx::Error> {
+) -> Result<()> {
     sqlx::query!(
         r#"
-        UPDATE projects 
-        SET 
+        UPDATE projects
+        SET
             is_verified = true,
             verification_date = $2,
             repository_url = $3
@@ -215,17 +169,13 @@ async fn verify_project_in_db(
     Ok(())
 }
 
-fn is_valid_repository_url(url: &str) -> bool {
-    // Basic URL validation for repository URLs
-    url.starts_with("https://")
-        && (url.contains("github.com")
-            || url.contains("gitlab.com")
-            || url.contains("bitbucket.org"))
-}
-
-fn is_valid_starknet_address(address: &str) -> bool {
-    // Validate Starknet address format (0x + 64 hex characters)
-    address.len() == 66
+fn is_valid_starknet_address(address: &str, _context: &()) -> garde::Result {
+    if address.len() == 66
         && address.starts_with("0x")
         && address.chars().skip(2).all(|c| c.is_ascii_hexdigit())
+    {
+        Ok(())
+    } else {
+        Err(garde::Error::new("Invalid Starknet address"))
+    }
 }
