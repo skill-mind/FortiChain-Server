@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE request_ticket\n        SET\n            status = 'resolved'::ticket_status_type,\n            resolution_response = $1,\n            resolved_at = NOW(),\n            updated_at = NOW()\n        WHERE id = $2\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1e7ec3d2bd91859378ceb731a1f063db9799907a1c29abe8258dc8f6d991e749"
+}

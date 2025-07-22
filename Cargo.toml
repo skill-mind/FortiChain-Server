@@ -37,14 +37,21 @@ sqlx = { version = "0.8.6", features = [
     "macros",
     "bigdecimal",
     "chrono",
-    "uuid"
+    "uuid",
 ] }
 thiserror = "1.0"
 log = "0.4"
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["json", "env-filter"] }
-tower-http = { version = "0.6.1", features = ["trace", "timeout", "request-id", "cors", "normalize-path"] }
+tower-http = { version = "0.6.1", features = [
+    "trace",
+    "timeout",
+    "request-id",
+    "cors",
+    "normalize-path",
+] }
 uuid = { version = "1.17", features = ["serde", "v7"] }
 hyper = "1.6.0"
 hex = "0.4"
 rand = "0.9.1"
+garde = { version = "0.22.0", features = ["full"] }

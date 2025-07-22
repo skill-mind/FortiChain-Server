@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::telemetry::trace_layer;
 use crate::{
     Config, cors_layer, normalize_path_layer, propagate_request_id_layer, request_id_layer,
@@ -8,14 +6,18 @@ use crate::{
 use crate::{Configuration, db::Db};
 use anyhow::Context;
 use axum::Router;
+use std::sync::Arc;
 use tokio::{net::TcpListener, signal};
+
+pub use crate::error::{Error, ResultExt};
+pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 mod create_project;
 mod escrow;
 mod health_check;
 mod helpers;
 mod projects;
-mod support_tickets;
+mod support_ticket;
 mod transaction;
 mod types;
 
@@ -51,7 +53,7 @@ pub fn api_router(app_state: AppState) -> Router {
         .merge(health_check::router())
         .merge(transaction::router())
         .merge(projects::router())
-        .merge(support_tickets::router())
+        .merge(support_ticket::router())
         .merge(create_project::router())
         .merge(escrow::router())
         .layer(trace_layer)
