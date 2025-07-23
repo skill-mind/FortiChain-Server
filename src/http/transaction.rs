@@ -211,8 +211,8 @@ impl TransactionService {
 }
 
 pub(crate) fn router() -> Router<AppState> {
-    Router::new().route("/deposit", post(deposit))
-
+    Router::new().route("/deposit", post(deposit));
+    Router::new().route("/withdraw", post(withdraw))
 }
 
 #[tracing::instrument(skip(state, payload))]
@@ -227,5 +227,19 @@ pub async fn deposit(state: State<AppState>, Json(payload): Json<DepositRequest>
     }
 
     tracing::info!("Deposit transaction created successfully");
+    StatusCode::CREATED
+}
+
+#[tracing::instrument(skip(state, payload))]
+pub async fn withdraw(state: State<AppState>, Json(payload): Json<WithdrawalRequest>) -> StatusCode {
+    let transaction_service = TransactionService {};
+    if let Err(e) = transaction_service
+        .withdraw_funds(&state.db.pool, payload)
+        .await
+    {
+        let (status_code, _) = From::from(e);
+        return status_code;
+    }
+
     StatusCode::CREATED
 }
