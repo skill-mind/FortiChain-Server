@@ -114,6 +114,14 @@ pub struct DepositRequest {
     transaction_hash: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct WithdrawalRequest {
+    wallet_address: String,
+    amount: i64,
+    currency: String,
+    notes: Option<String>, // tto tell the purpose of the withdrawal
+}
+
 #[derive(Debug, Clone)]
 pub struct TransactionService;
 
@@ -188,10 +196,23 @@ impl TransactionService {
         tracing::info!("Deposit transaction completed successfully");
         Ok(())
     }
+
+    pub async fn withdraw_funds(&self, db: &PgPool, withdrawal_request: WithdrawalRequest) -> Result<(), ServiceError> {
+        let mut tx = db.begin().await?;
+        // create a query
+        let query = r#"
+            SELECT * FROM escrow_users WHERE wallet_address = $1;
+        "#;
+
+
+
+        Ok(())
+    }
 }
 
 pub(crate) fn router() -> Router<AppState> {
     Router::new().route("/deposit", post(deposit))
+
 }
 
 #[tracing::instrument(skip(state, payload))]
