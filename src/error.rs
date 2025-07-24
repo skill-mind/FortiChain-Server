@@ -163,10 +163,13 @@ pub enum ServiceError {
     SystemTimeError(#[from] SystemTimeError),
     #[error("Invalid Project ID")]
     InvalidProjectId(#[from] uuid::Error),
+    // decided to use variant more generic for other fields
     #[error("Amount cannot be zero or less")]
     InvalidAmount,
     #[error("Entity not found")]
     EntityNotFound,
+    #[error("Insufficient funds")]
+    InsufficientFunds,
 }
 
 impl From<ServiceError> for (StatusCode, Json<ErrorResponse>) {
@@ -197,6 +200,11 @@ impl From<ServiceError> for (StatusCode, Json<ErrorResponse>) {
                 "entity_not_found",
                 "The requested entity was not found",
             ),
+            ServiceError::InsufficientFunds => (
+                StatusCode::FORBIDDEN,
+                "insufficient_funds",
+                "Insufficient funds",
+            ),
         };
 
         (
@@ -220,7 +228,10 @@ impl From<ServiceError> for Error {
             ServiceError::InvalidAmount => Error::InvalidRequest("Amount cannot be zero or less".to_string()),
             ServiceError::EntityNotFound => {
                 Error::NotFound
-            }
+            },
+            ServiceError::InsufficientFunds => {
+                Error::Forbidden
+            },
             }
         }
     }

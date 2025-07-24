@@ -6,6 +6,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, Postgres, Transaction};
 use uuid::Uuid;
+use crate::http::helpers::generate_transaction_hash;
 
 #[allow(dead_code)]
 #[derive(Debug, sqlx::FromRow)]
@@ -197,27 +198,108 @@ impl TransactionService {
         Ok(())
     }
 
-    pub async fn withdraw_funds(&self, db: &PgPool, withdrawal_request: WithdrawalRequest) -> Result<(), ServiceError> {
-
+    pub async fn withdraw_funds(
+        &self,
+        db: &PgPool,
+        withdrawal_request: WithdrawalRequest
+    ) -> Result<(), ServiceError> {
+        // Validate amount
         if withdrawal_request.amount <= BigDecimal::from(0) {
             return Err(ServiceError::InvalidAmount);
         }
 
-        // try to get the escrow user
         let mut tx = db.begin().await?;
 
-        // build the query
+        // Get escrow user with lock for update
         let query = r#"
-           SELECT wallet_address, balance, created_at, updated_at WHERE wallet_address = $1;
-        "#;
+        SELECT wallet_address, balance, created_at, updated_at
+        FROM escrow_users
+        WHERE wallet_address = $1
+        FOR UPDATE;
+    "#;
 
-        let user = sqlx::query_as::<_, EscrowUsers>(query).bind(withdrawal_request.wallet_address).fetch_optional(&mut *tx).await.or_else(
-            | e| {
-                return Err(ServiceError::EntityNotFound)
-            }
-        );
+        let user = sqlx::query_as::<_, EscrowUsers>(query)
+            .bind(&withdrawal_request.wallet_address)
+            .fetch_optional(&mut *tx)
+            .await
+            .map_err(|e| {
+                tracing::error!(error = %e, "Failed to fetch escrow account");
+                ServiceError::DatabaseError(e)
+            })?
+            .ok_or(ServiceError::EntityNotFound)?;
 
+        // Check sufficient balance
+        if user.balance < withdrawal_request.amount {
+            return Err(ServiceError::InsufficientFunds);
+        }
 
+        // Calculate new balance
+        let new_balance = user.balance - &withdrawal_request.amount;
+        let transaction_hash = generate_transaction_hash();
+        let current_date_time = Utc::now();
+
+        // Update escrow account balance
+        let update_query = r#"
+        UPDATE escrow_users
+        SET balance = $1, updated_at = $2
+        WHERE wallet_address = $3;
+    "#;
+
+        sqlx::query(update_query)
+            .bind(&new_balance)
+            .bind(current_date_time)
+            .bind(&withdrawal_request.wallet_address)
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| {
+                tracing::error!(error = %e, "Failed to update escrow account balance");
+                ServiceError::DatabaseError(e)
+            })?;
+
+        // Create withdrawal transaction record
+        let transaction_query = r#"
+        INSERT INTO escrow_transactions (
+            wallet_address,
+            transaction_type,
+            amount,
+            currency,
+            transaction_hash,
+            transaction_status,
+            notes,
+            created_at,
+            updated_at
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);
+    "#;
+
+        sqlx::query(transaction_query)
+            .bind(&withdrawal_request.wallet_address)
+            .bind(TransactionType::Withdrawal)
+            .bind(&withdrawal_request.amount)
+            .bind(&withdrawal_request.currency)
+            .bind(&transaction_hash)
+            .bind(TransactionStatus::Completed)
+            .bind(&withdrawal_request.notes)
+            .bind(current_date_time)
+            .bind(current_date_time)
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| {
+                tracing::error!(error = %e, "Failed to create withdrawal transaction");
+                ServiceError::DatabaseError(e)
+            })?;
+
+        // Commit transaction
+        tx.commit().await.map_err(|e| {
+            tracing::error!(error = %e, "Failed to commit withdrawal transaction");
+            ServiceError::DatabaseError(e)
+        })?;
+
+        tracing::info!(
+        wallet = %withdrawal_request.wallet_address,
+        amount = %withdrawal_request.amount,
+        "Withdrawal completed successfully"
+    );
 
         Ok(())
     }
