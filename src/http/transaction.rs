@@ -192,50 +192,13 @@ impl TransactionService {
 
         // Create transaction record
         tracing::info!("Creating Deposit Transaction");
-        let now = Utc::now();
-        let query = r#"
-            INSERT INTO escrow_transactions
-            (wallet_address, type, amount, currency, transaction_hash, status, notes, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-        "#;
-
-        sqlx::query(query)
-            .bind(&deposit_info.wallet_address)
-            .bind(TransactionType::Deposit)
-            .bind(BigDecimal::from(deposit_info.amount))
-            .bind(deposit_info.currency)
-            .bind(deposit_info.transaction_hash)
-            .bind(TransactionStatus::Completed)
-            .bind(deposit_info.notes)
-            .bind(now)
-            .bind(now)
-            .execute(&mut *tx)
-            .await
-            .map_err(|e| {
-                tracing::error!(error = %e, "Failed to create deposit transaction");
-                ServiceError::DatabaseError(e)
-            })?;
+        self.create_transaction(&mut tx, &deposit_info.wallet_address,TransactionType::Deposit, &BigDecimal::from(deposit_info.amount), &deposit_info.currency, &deposit_info.notes).await?;
 
         tracing::info!("Updating escrow account balance");
         // Update escrow account balance
         let new_balance = escrow_account.balance + BigDecimal::from(deposit_info.amount);
 
-        sqlx::query(
-            r#"
-            UPDATE escrow_users
-            SET balance = $1, updated_at = $2
-            WHERE wallet_address = $3
-            "#,
-        )
-        .bind(new_balance)
-        .bind(now)
-        .bind(&deposit_info.wallet_address)
-        .execute(&mut *tx)
-        .await
-        .map_err(|e| {
-            tracing::error!(error = %e, "Failed to update escrow account balance");
-            ServiceError::DatabaseError(e)
-        })?;
+        escrow_service.update_escrow_user_balance(&mut tx, &deposit_info.wallet_address, &new_balance).await?;
 
         // Commit transaction
         tx.commit().await.map_err(|e| {
@@ -267,14 +230,12 @@ impl TransactionService {
 
         // Calculate new balance
         let new_balance = user.balance - &withdrawal_request.amount;
-        let transaction_hash = generate_transaction_hash();
-        let current_date_time = Utc::now();
 
         // Update escrow account balance
         escrow_service.update_escrow_user_balance(&mut tx, &withdrawal_request.wallet_address, &new_balance).await?;
 
         // Create withdrawal transaction record
-        self.create_transaction(&mut tx, &withdrawal_request.wallet_address, &withdrawal_request.amount, &withdrawal_request.currency, &withdrawal_request.notes).await?;
+        self.create_transaction(&mut tx, &withdrawal_request.wallet_address,TransactionType::Withdrawal, &withdrawal_request.amount, &withdrawal_request.currency, &withdrawal_request.notes).await?;
 
         // Commit transaction
         tx.commit().await.map_err(|e| {
@@ -290,7 +251,7 @@ impl TransactionService {
         Ok(())
     }
 
-    async fn create_transaction(&self, tx: &mut Transaction<'_, Postgres>, wallet_address: &String, amount: &BigDecimal, currency: &String, notes: &Option<String>) -> Result<(), ServiceError> {
+    async fn create_transaction(&self, tx: &mut Transaction<'_, Postgres>, wallet_address: &String, transaction_type: TransactionType, amount: &BigDecimal, currency: &String, notes: &Option<String>) -> Result<(), ServiceError> {
         let transaction_query = r#"
         INSERT INTO escrow_transactions (
             wallet_address,
@@ -311,7 +272,7 @@ impl TransactionService {
 
         sqlx::query(transaction_query)
             .bind(wallet_address)
-            .bind(TransactionType::Withdrawal)
+            .bind(transaction_type)
             .bind(amount)
             .bind(currency)
             .bind(&transaction_hash)
