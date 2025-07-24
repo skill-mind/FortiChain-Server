@@ -1,4 +1,4 @@
-use crate::{AppState, Error};
+use crate::{AppState, };
 use crate::error::ServiceError;
 use axum::{Json, Router, extract::State, http::StatusCode, routing::post};
 use bigdecimal::BigDecimal;
@@ -120,7 +120,7 @@ pub struct WithdrawalRequest {
     wallet_address: String,
     amount: BigDecimal,
     currency: String,
-    notes: Option<String>, // tto tell the purpose of the withdrawal
+    notes: Option<String>, // to tell the purpose of the withdrawal
 }
 
 #[derive(Debug, Clone)]
@@ -300,7 +300,6 @@ impl TransactionService {
         amount = %withdrawal_request.amount,
         "Withdrawal completed successfully"
     );
-
         Ok(())
     }
 }
