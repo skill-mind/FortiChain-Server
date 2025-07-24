@@ -200,15 +200,22 @@ impl TransactionService {
     pub async fn withdraw_funds(&self, db: &PgPool, withdrawal_request: WithdrawalRequest) -> Result<(), ServiceError> {
 
         if withdrawal_request.amount <= BigDecimal::from(0) {
-
+            return Err(ServiceError::InvalidAmount);
         }
+
+        // try to get the escrow user
         let mut tx = db.begin().await?;
-        // create a query
+
+        // build the query
         let query = r#"
-            SELECT * FROM escrow_users WHERE wallet_address = $1;
+           SELECT wallet_address, balance, created_at, updated_at WHERE wallet_address = $1;
         "#;
 
-        // let optional_escrow = sqlx::query(query);
+        let user = sqlx::query_as::<_, EscrowUsers>(query).bind(withdrawal_request.wallet_address).fetch_optional(&mut *tx).await.or_else(
+            | e| {
+                return Err(ServiceError::EntityNotFound)
+            }
+        );
 
 
 

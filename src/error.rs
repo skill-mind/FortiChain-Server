@@ -165,6 +165,8 @@ pub enum ServiceError {
     InvalidProjectId(#[from] uuid::Error),
     #[error("Amount cannot be zero or less")]
     InvalidAmount,
+    #[error("Entity not found")]
+    EntityNotFound,
 }
 
 impl From<ServiceError> for (StatusCode, Json<ErrorResponse>) {
@@ -190,6 +192,11 @@ impl From<ServiceError> for (StatusCode, Json<ErrorResponse>) {
                 "invalid_amount",
                 "The provided amount is invalid",
             ),
+            ServiceError::EntityNotFound => (
+                StatusCode::NOT_FOUND,
+                "entity_not_found",
+                "The requested entity was not found",
+            ),
         };
 
         (
@@ -211,6 +218,9 @@ impl From<ServiceError> for Error {
             ServiceError::DatabaseError(_) => Error::Forbidden,
             ServiceError::SystemTimeError(_) => Error::Forbidden,
             ServiceError::InvalidAmount => Error::InvalidRequest("Amount cannot be zero or less".to_string()),
+            ServiceError::EntityNotFound => {
+                Error::NotFound
+            }
             }
         }
     }
