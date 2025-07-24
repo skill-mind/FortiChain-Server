@@ -1,3 +1,4 @@
+use crate::helpers::{TestApp, generate_address};
 use axum::{
     body::{Body, to_bytes},
     http::{Request, StatusCode},
@@ -5,8 +6,6 @@ use axum::{
 use serde_json::json;
 use sqlx::Row;
 use uuid::Uuid;
-
-use crate::helpers::{TestApp, generate_address};
 
 #[tokio::test]
 async fn test_get_project_success() {
