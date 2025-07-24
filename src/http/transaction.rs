@@ -97,6 +97,30 @@ impl EscrowService {
             .ok_or(ServiceError::EntityNotFound)?;
         Ok(user)
     }
+
+    #[tracing::instrument(skip(tx))]
+    pub async fn update_escrow_user_balance(&self, tx: &mut Transaction<'_, Postgres>, wallet_address: &String, new_balance: &BigDecimal) -> Result<(), ServiceError> {
+
+        let update_query = r#"
+        UPDATE escrow_users
+        SET balance = $1, updated_at = $2
+        WHERE wallet_address = $3;
+    "#;
+
+        let current_date_time = Utc::now();
+        sqlx::query(update_query)
+            .bind(&new_balance)
+            .bind(current_date_time)
+            .bind(wallet_address)
+            .execute(&mut **tx)
+            .await
+            .map_err(|e| {
+                tracing::error!(error = %e, "Failed to update escrow account balance");
+                ServiceError::DatabaseError(e)
+            })?;
+
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]
@@ -247,24 +271,26 @@ impl TransactionService {
         let current_date_time = Utc::now();
 
         // Update escrow account balance
-        let update_query = r#"
-        UPDATE escrow_users
-        SET balance = $1, updated_at = $2
-        WHERE wallet_address = $3;
-    "#;
-
-        sqlx::query(update_query)
-            .bind(&new_balance)
-            .bind(current_date_time)
-            .bind(&withdrawal_request.wallet_address)
-            .execute(&mut *tx)
-            .await
-            .map_err(|e| {
-                tracing::error!(error = %e, "Failed to update escrow account balance");
-                ServiceError::DatabaseError(e)
-            })?;
+        escrow_service.update_escrow_user_balance(&mut tx, &withdrawal_request.wallet_address, &new_balance).await?;
 
         // Create withdrawal transaction record
+        self.create_transaction(&mut tx, &withdrawal_request.wallet_address, &withdrawal_request.amount, &withdrawal_request.currency, &withdrawal_request.notes).await?;
+
+        // Commit transaction
+        tx.commit().await.map_err(|e| {
+            tracing::error!(error = %e, "Failed to commit withdrawal transaction");
+            ServiceError::DatabaseError(e)
+        })?;
+
+        tracing::info!(
+        wallet = %withdrawal_request.wallet_address,
+        amount = %withdrawal_request.amount,
+        "Withdrawal completed successfully"
+    );
+        Ok(())
+    }
+
+    async fn create_transaction(&self, tx: &mut Transaction<'_, Postgres>, wallet_address: &String, amount: &BigDecimal, currency: &String, notes: &Option<String>) -> Result<(), ServiceError> {
         let transaction_query = r#"
         INSERT INTO escrow_transactions (
             wallet_address,
@@ -280,34 +306,26 @@ impl TransactionService {
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);
     "#;
 
+        let current_date_time = Utc::now();
+        let transaction_hash = generate_transaction_hash();
+
         sqlx::query(transaction_query)
-            .bind(&withdrawal_request.wallet_address)
+            .bind(wallet_address)
             .bind(TransactionType::Withdrawal)
-            .bind(&withdrawal_request.amount)
-            .bind(&withdrawal_request.currency)
+            .bind(amount)
+            .bind(currency)
             .bind(&transaction_hash)
             .bind(TransactionStatus::Completed)
-            .bind(&withdrawal_request.notes)
+            .bind(notes)
             .bind(current_date_time)
             .bind(current_date_time)
-            .execute(&mut *tx)
+            .execute(&mut **tx)
             .await
             .map_err(|e| {
                 tracing::error!(error = %e, "Failed to create withdrawal transaction");
                 ServiceError::DatabaseError(e)
             })?;
 
-        // Commit transaction
-        tx.commit().await.map_err(|e| {
-            tracing::error!(error = %e, "Failed to commit withdrawal transaction");
-            ServiceError::DatabaseError(e)
-        })?;
-
-        tracing::info!(
-        wallet = %withdrawal_request.wallet_address,
-        amount = %withdrawal_request.amount,
-        "Withdrawal completed successfully"
-    );
         Ok(())
     }
 }
