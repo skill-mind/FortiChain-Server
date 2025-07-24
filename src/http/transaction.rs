@@ -1,4 +1,4 @@
-use crate::AppState;
+use crate::{AppState, Error};
 use crate::error::ServiceError;
 use axum::{Json, Router, extract::State, http::StatusCode, routing::post};
 use bigdecimal::BigDecimal;
@@ -117,7 +117,7 @@ pub struct DepositRequest {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WithdrawalRequest {
     wallet_address: String,
-    amount: i64,
+    amount: BigDecimal,
     currency: String,
     notes: Option<String>, // tto tell the purpose of the withdrawal
 }
@@ -198,11 +198,17 @@ impl TransactionService {
     }
 
     pub async fn withdraw_funds(&self, db: &PgPool, withdrawal_request: WithdrawalRequest) -> Result<(), ServiceError> {
+
+        if withdrawal_request.amount <= BigDecimal::from(0) {
+
+        }
         let mut tx = db.begin().await?;
         // create a query
         let query = r#"
             SELECT * FROM escrow_users WHERE wallet_address = $1;
         "#;
+
+        // let optional_escrow = sqlx::query(query);
 
 
 

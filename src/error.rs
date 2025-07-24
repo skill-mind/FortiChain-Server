@@ -163,6 +163,8 @@ pub enum ServiceError {
     SystemTimeError(#[from] SystemTimeError),
     #[error("Invalid Project ID")]
     InvalidProjectId(#[from] uuid::Error),
+    #[error("Amount cannot be zero or less")]
+    InvalidAmount,
 }
 
 impl From<ServiceError> for (StatusCode, Json<ErrorResponse>) {
@@ -182,6 +184,11 @@ impl From<ServiceError> for (StatusCode, Json<ErrorResponse>) {
                 StatusCode::BAD_REQUEST,
                 "invalid_project_id",
                 "The provided project ID is invalid",
+            ),
+            ServiceError::InvalidAmount => (
+                StatusCode::BAD_REQUEST,
+                "invalid_amount",
+                "The provided amount is invalid",
             ),
         };
 
@@ -203,6 +210,7 @@ impl From<ServiceError> for Error {
             }
             ServiceError::DatabaseError(_) => Error::Forbidden,
             ServiceError::SystemTimeError(_) => Error::Forbidden,
+            ServiceError::InvalidAmount => Error::InvalidRequest("Amount cannot be zero or less".to_string()),
+            }
         }
     }
-}
