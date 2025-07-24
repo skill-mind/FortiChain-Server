@@ -19,7 +19,7 @@ mod project;
 mod support_ticket;
 mod transaction;
 mod types;
-
+mod validators;
 #[derive(Clone)]
 pub struct AppState {
     pub db: Db,
