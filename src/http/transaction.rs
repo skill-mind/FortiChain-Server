@@ -23,7 +23,7 @@ pub struct EscrowUsers {
 pub struct EscrowService;
 
 impl EscrowService {
-    /// Create or get existing escrow account for user
+    /// Create or get an existing escrow account for user
     #[tracing::instrument(skip(tx))]
     pub async fn get_or_create_escrow_users(
         &self,
@@ -191,7 +191,7 @@ impl TransactionService {
     ) -> Result<(), ServiceError> {
         let mut tx = db.begin().await?;
 
-        // Get or create escrow account
+        // Get or create an escrow account
         let escrow_service = EscrowService {};
         let escrow_account = escrow_service
             .get_or_create_escrow_users(&mut tx, &deposit_info.wallet_address)
@@ -329,8 +329,9 @@ impl TransactionService {
 }
 
 pub(crate) fn router() -> Router<AppState> {
-    Router::new().route("/deposit", post(deposit));
-    Router::new().route("/withdraw", post(withdraw))
+    Router::new()
+        .route("/deposit", post(deposit))
+        .route("/withdraw", post(withdraw))
 }
 
 #[tracing::instrument(skip(state, payload))]
