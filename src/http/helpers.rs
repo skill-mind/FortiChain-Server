@@ -1,6 +1,6 @@
+use crate::ServiceError;
 use bigdecimal::BigDecimal;
 use rand::Rng;
-use crate::ServiceError;
 
 pub fn generate_transaction_hash() -> String {
     let charset = b"abcdefABCDEF0123456789";
@@ -17,13 +17,16 @@ pub fn generate_transaction_hash() -> String {
 
 pub fn check_withdrawal_amount(amount: &BigDecimal) -> Result<(), ServiceError> {
     if amount <= &BigDecimal::from(0) {
-        return Err(ServiceError::InvalidAmount)
+        return Err(ServiceError::InvalidAmount);
     }
     Ok(())
 }
 
-pub fn check_withdrawal_amount_as_against_balance(balance: &BigDecimal, withdrawal_amount: &BigDecimal) -> Result<(), ServiceError> {
-    if balance < withdrawal_amount { 
+pub fn check_withdrawal_amount_as_against_balance(
+    balance: &BigDecimal,
+    withdrawal_amount: &BigDecimal,
+) -> Result<(), ServiceError> {
+    if balance < withdrawal_amount {
         return Err(ServiceError::InvalidAmount);
     }
     Ok(())

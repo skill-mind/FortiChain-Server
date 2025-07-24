@@ -225,13 +225,11 @@ impl From<ServiceError> for Error {
             }
             ServiceError::DatabaseError(_) => Error::Forbidden,
             ServiceError::SystemTimeError(_) => Error::Forbidden,
-            ServiceError::InvalidAmount => Error::InvalidRequest("Amount cannot be zero or less".to_string()),
-            ServiceError::EntityNotFound => {
-                Error::NotFound
-            },
-            ServiceError::InsufficientFunds => {
-                Error::Forbidden
-            },
+            ServiceError::InvalidAmount => {
+                Error::InvalidRequest("Amount cannot be zero or less".to_string())
             }
+            ServiceError::EntityNotFound => Error::NotFound,
+            ServiceError::InsufficientFunds => Error::Forbidden,
         }
     }
+}

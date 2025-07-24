@@ -1,14 +1,14 @@
-use crate::{AppState, };
+use crate::AppState;
 use crate::error::ServiceError;
+use crate::http::helpers::{
+    check_withdrawal_amount, check_withdrawal_amount_as_against_balance, generate_transaction_hash,
+};
 use axum::{Json, Router, extract::State, http::StatusCode, routing::post};
 use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, Postgres, Transaction};
 use uuid::Uuid;
-use crate::http::helpers::{
-    generate_transaction_hash, check_withdrawal_amount, check_withdrawal_amount_as_against_balance
-};
 
 #[allow(dead_code)]
 #[derive(Debug, sqlx::FromRow)]
@@ -76,8 +76,11 @@ impl EscrowService {
     }
 
     #[tracing::instrument(skip(tx))]
-    pub async fn get_escrow_user(&self, tx: &mut Transaction<'_, Postgres>, wallet_address: &String) -> Result<EscrowUsers, ServiceError> {
-
+    pub async fn get_escrow_user(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        wallet_address: &String,
+    ) -> Result<EscrowUsers, ServiceError> {
         // Get escrow user with lock for update
         let query = r#"
         SELECT wallet_address, balance, created_at, updated_at
@@ -99,8 +102,12 @@ impl EscrowService {
     }
 
     #[tracing::instrument(skip(tx))]
-    pub async fn update_escrow_user_balance(&self, tx: &mut Transaction<'_, Postgres>, wallet_address: &String, new_balance: &BigDecimal) -> Result<(), ServiceError> {
-
+    pub async fn update_escrow_user_balance(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        wallet_address: &String,
+        new_balance: &BigDecimal,
+    ) -> Result<(), ServiceError> {
         let update_query = r#"
         UPDATE escrow_users
         SET balance = $1, updated_at = $2
@@ -192,13 +199,23 @@ impl TransactionService {
 
         // Create transaction record
         tracing::info!("Creating Deposit Transaction");
-        self.create_transaction(&mut tx, &deposit_info.wallet_address,TransactionType::Deposit, &BigDecimal::from(deposit_info.amount), &deposit_info.currency, &deposit_info.notes).await?;
+        self.create_transaction(
+            &mut tx,
+            &deposit_info.wallet_address,
+            TransactionType::Deposit,
+            &BigDecimal::from(deposit_info.amount),
+            &deposit_info.currency,
+            &deposit_info.notes,
+        )
+        .await?;
 
         tracing::info!("Updating escrow account balance");
         // Update escrow account balance
         let new_balance = escrow_account.balance + BigDecimal::from(deposit_info.amount);
 
-        escrow_service.update_escrow_user_balance(&mut tx, &deposit_info.wallet_address, &new_balance).await?;
+        escrow_service
+            .update_escrow_user_balance(&mut tx, &deposit_info.wallet_address, &new_balance)
+            .await?;
 
         // Commit transaction
         tx.commit().await.map_err(|e| {
@@ -214,7 +231,7 @@ impl TransactionService {
     pub async fn withdraw_funds(
         &self,
         db: &PgPool,
-        withdrawal_request: WithdrawalRequest
+        withdrawal_request: WithdrawalRequest,
     ) -> Result<(), ServiceError> {
         // Validate amount
         check_withdrawal_amount(&withdrawal_request.amount)?;
@@ -223,7 +240,9 @@ impl TransactionService {
 
         // Get escrow user with lock for update
         let escrow_service = EscrowService {};
-        let user = escrow_service.get_escrow_user(&mut tx, &withdrawal_request.wallet_address).await?;
+        let user = escrow_service
+            .get_escrow_user(&mut tx, &withdrawal_request.wallet_address)
+            .await?;
 
         // Check sufficient balance
         check_withdrawal_amount_as_against_balance(&user.balance, &withdrawal_request.amount)?;
@@ -232,10 +251,20 @@ impl TransactionService {
         let new_balance = user.balance - &withdrawal_request.amount;
 
         // Update escrow account balance
-        escrow_service.update_escrow_user_balance(&mut tx, &withdrawal_request.wallet_address, &new_balance).await?;
+        escrow_service
+            .update_escrow_user_balance(&mut tx, &withdrawal_request.wallet_address, &new_balance)
+            .await?;
 
         // Create withdrawal transaction record
-        self.create_transaction(&mut tx, &withdrawal_request.wallet_address,TransactionType::Withdrawal, &withdrawal_request.amount, &withdrawal_request.currency, &withdrawal_request.notes).await?;
+        self.create_transaction(
+            &mut tx,
+            &withdrawal_request.wallet_address,
+            TransactionType::Withdrawal,
+            &withdrawal_request.amount,
+            &withdrawal_request.currency,
+            &withdrawal_request.notes,
+        )
+        .await?;
 
         // Commit transaction
         tx.commit().await.map_err(|e| {
@@ -244,14 +273,22 @@ impl TransactionService {
         })?;
 
         tracing::info!(
-        wallet = %withdrawal_request.wallet_address,
-        amount = %withdrawal_request.amount,
-        "Withdrawal completed successfully"
-    );
+            wallet = %withdrawal_request.wallet_address,
+            amount = %withdrawal_request.amount,
+            "Withdrawal completed successfully"
+        );
         Ok(())
     }
 
-    async fn create_transaction(&self, tx: &mut Transaction<'_, Postgres>, wallet_address: &String, transaction_type: TransactionType, amount: &BigDecimal, currency: &String, notes: &Option<String>) -> Result<(), ServiceError> {
+    async fn create_transaction(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        wallet_address: &String,
+        transaction_type: TransactionType,
+        amount: &BigDecimal,
+        currency: &String,
+        notes: &Option<String>,
+    ) -> Result<(), ServiceError> {
         let transaction_query = r#"
         INSERT INTO escrow_transactions (
             wallet_address,
@@ -312,7 +349,10 @@ pub async fn deposit(state: State<AppState>, Json(payload): Json<DepositRequest>
 }
 
 #[tracing::instrument(skip(state, payload))]
-pub async fn withdraw(state: State<AppState>, Json(payload): Json<WithdrawalRequest>) -> StatusCode {
+pub async fn withdraw(
+    state: State<AppState>,
+    Json(payload): Json<WithdrawalRequest>,
+) -> StatusCode {
     let transaction_service = TransactionService {};
     if let Err(e) = transaction_service
         .withdraw_funds(&state.db.pool, payload)
