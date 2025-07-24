@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            WITH input_tags(tag_name) AS (\n                SELECT unnest($1::text[])\n            ),\n            inserted_tags AS (\n                INSERT INTO tags (name)\n                SELECT tag_name FROM input_tags\n                ON CONFLICT (name) DO NOTHING\n                RETURNING id\n            )\n            SELECT id FROM inserted_tags\n            UNION\n            SELECT t.id FROM tags t\n            JOIN input_tags it ON t.name = it.tag_name\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "b97518e10373ead2df0a7f561d52f8a055163c12d039e271a952bb024bb3758a"
+}

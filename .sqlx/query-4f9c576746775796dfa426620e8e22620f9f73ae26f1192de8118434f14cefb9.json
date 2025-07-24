@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            WITH project AS (\n                SELECT\n                    p.owner_address,\n                    p.bounty_amount,\n                    p.closed_at,\n                    EXISTS (SELECT 1 FROM escrow_users u WHERE u.wallet_address = $1) AS user_exists\n                FROM projects p\n                WHERE p.id = $2\n                FOR UPDATE\n            ),\n            escrow_update AS (\n                UPDATE escrow_users\n                SET balance = COALESCE(balance, 0) + (\n                    SELECT COALESCE(bounty_amount, 0)\n                    FROM project\n                    WHERE user_exists\n                        AND owner_address = $1\n                        AND closed_at IS NULL\n                        AND COALESCE(bounty_amount, 0) > 0\n                )\n                WHERE wallet_address = $1\n                AND (SELECT user_exists FROM project)\n                AND (SELECT COALESCE(bounty_amount, 0) > 0 FROM project)\n                AND (SELECT closed_at IS NULL FROM project)\n                RETURNING 1\n            ),\n            project_update AS (\n                UPDATE projects\n                SET closed_at = now()\n                WHERE id = $2\n                AND EXISTS (SELECT 1 FROM project\n                            WHERE owner_address = $1\n                            AND user_exists\n                            AND closed_at IS NULL)\n                RETURNING 1\n            )\n            SELECT\n                (SELECT owner_address FROM project) AS owner_address,\n                (SELECT closed_at FROM project) AS closed_at,\n                (SELECT user_exists FROM project) AS user_exists,\n                (SELECT COUNT(*) FROM project_update) AS projects_updated\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "owner_address",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "closed_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 2,
+        "name": "user_exists",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "projects_updated",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "4f9c576746775796dfa426620e8e22620f9f73ae26f1192de8118434f14cefb9"
+}

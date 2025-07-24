@@ -12,11 +12,10 @@ use tokio::{net::TcpListener, signal};
 pub use crate::error::{Error, ResultExt};
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
-mod create_project;
 mod escrow;
 mod health_check;
 mod helpers;
-mod projects;
+mod project;
 mod support_ticket;
 mod transaction;
 mod types;
@@ -52,9 +51,8 @@ pub fn api_router(app_state: AppState) -> Router {
     Router::new()
         .merge(health_check::router())
         .merge(transaction::router())
-        .merge(projects::router())
+        .merge(project::router())
         .merge(support_ticket::router())
-        .merge(create_project::router())
         .merge(escrow::router())
         .layer(trace_layer)
         .layer(request_id_layer)

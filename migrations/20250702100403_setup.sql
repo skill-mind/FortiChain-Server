@@ -83,7 +83,7 @@ create table escrow_users (
 comment on column escrow_users.wallet_address is 'The user''s Starknet wallet address. Used for deposits and withdrawals.';
 comment on column escrow_users.balance is 'The user''s current available balance on the platform''s escrow.';
 
-create type transaction_type as enum ('deposit', 'bounty_allocation', 'withdrawal');
+create type transaction_type as enum ('deposit', 'bounty_allocation', 'bounty_disbursement', 'withdrawal');
 create type transaction_status as enum ('pending', 'completed', 'failed');
 
 create table escrow_transactions (
@@ -100,7 +100,7 @@ create table escrow_transactions (
     updated_at timestamptz,
 
     constraint ck_escrow_transactions_project_required_check check (
-        (type = 'bounty_allocation' and project_id is not null) or
+        (type in ('bounty_allocation', 'bounty_disbursement') and project_id is not null) or
         (type in ('deposit', 'withdrawal') and project_id is null)
     )
 );
