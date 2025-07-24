@@ -6,7 +6,9 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, Postgres, Transaction};
 use uuid::Uuid;
-use crate::http::helpers::generate_transaction_hash;
+use crate::http::helpers::{
+    generate_transaction_hash, check_withdrawal_amount, check_withdrawal_amount_as_against_balance
+};
 
 #[allow(dead_code)]
 #[derive(Debug, sqlx::FromRow)]
@@ -71,6 +73,29 @@ impl EscrowService {
         tracing::info!(wallet = %new_account.wallet_address, "New escrow account created successfully");
 
         Ok(new_account)
+    }
+
+    #[tracing::instrument(skip(tx))]
+    pub async fn get_escrow_user(&self, tx: &mut Transaction<'_, Postgres>, wallet_address: &String) -> Result<EscrowUsers, ServiceError> {
+
+        // Get escrow user with lock for update
+        let query = r#"
+        SELECT wallet_address, balance, created_at, updated_at
+        FROM escrow_users
+        WHERE wallet_address = $1
+        FOR UPDATE;
+        "#;
+
+        let user = sqlx::query_as::<_, EscrowUsers>(query)
+            .bind(&wallet_address)
+            .fetch_optional(&mut **tx)
+            .await
+            .map_err(|e| {
+                tracing::error!(error = %e, "Failed to fetch escrow account");
+                ServiceError::DatabaseError(e)
+            })?
+            .ok_or(ServiceError::EntityNotFound)?;
+        Ok(user)
     }
 }
 
@@ -198,40 +223,23 @@ impl TransactionService {
         Ok(())
     }
 
+    // fn
     pub async fn withdraw_funds(
         &self,
         db: &PgPool,
         withdrawal_request: WithdrawalRequest
     ) -> Result<(), ServiceError> {
         // Validate amount
-        if withdrawal_request.amount <= BigDecimal::from(0) {
-            return Err(ServiceError::InvalidAmount);
-        }
+        check_withdrawal_amount(&withdrawal_request.amount)?;
 
         let mut tx = db.begin().await?;
 
         // Get escrow user with lock for update
-        let query = r#"
-        SELECT wallet_address, balance, created_at, updated_at
-        FROM escrow_users
-        WHERE wallet_address = $1
-        FOR UPDATE;
-    "#;
-
-        let user = sqlx::query_as::<_, EscrowUsers>(query)
-            .bind(&withdrawal_request.wallet_address)
-            .fetch_optional(&mut *tx)
-            .await
-            .map_err(|e| {
-                tracing::error!(error = %e, "Failed to fetch escrow account");
-                ServiceError::DatabaseError(e)
-            })?
-            .ok_or(ServiceError::EntityNotFound)?;
+        let escrow_service = EscrowService {};
+        let user = escrow_service.get_escrow_user(&mut tx, &withdrawal_request.wallet_address).await?;
 
         // Check sufficient balance
-        if user.balance < withdrawal_request.amount {
-            return Err(ServiceError::InsufficientFunds);
-        }
+        check_withdrawal_amount_as_against_balance(&user.balance, &withdrawal_request.amount)?;
 
         // Calculate new balance
         let new_balance = user.balance - &withdrawal_request.amount;
