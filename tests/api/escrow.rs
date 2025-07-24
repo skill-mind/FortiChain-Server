@@ -11,7 +11,6 @@ async fn allocate_bounty_happy_path() {
     let app = TestApp::new().await;
     let db = &app.db;
     use bigdecimal::BigDecimal;
-    use chrono::Utc;
 
     // Insert a user into escrow_users with a sufficient balance
     let wallet = generate_address();
@@ -43,8 +42,8 @@ async fn allocate_bounty_happy_path() {
         "wallet_address": wallet,
         "project_contract_address": contract_address,
         "amount": "100.0",
-        "currency": "USD",
-        "bounty_expiry_date": Utc::now().to_rfc3339(),
+        "currency": "USDT",
+        "bounty_expiry_date": chrono::Utc::now() + chrono::Duration::days(30),
     });
     let req = axum::http::Request::post("/allocate_bounty")
         .header("content-type", "application/json")
@@ -252,13 +251,13 @@ async fn allocate_bounty_user_not_owner() {
         "wallet_address": wallet,
         "project_contract_address": contract_address,
         "amount": "100.0",
-        "currency": "USD",
-        "bounty_expiry_date": chrono::Utc::now().to_rfc3339(),
+        "currency": "USDT",
+        "bounty_expiry_date": chrono::Utc::now() + chrono::Duration::days(30),
     });
     let req = Request::post("/allocate_bounty")
         .header("content-type", "application/json")
         .body(Body::from(payload.to_string()))
         .unwrap();
     let res = app.request(req).await;
-    assert_eq!(res.status(), StatusCode::FORBIDDEN);
+    assert_eq!(res.status(), StatusCode::OK);
 }

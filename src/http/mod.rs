@@ -14,7 +14,6 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 mod escrow;
 mod health_check;
-mod helpers;
 mod project;
 mod support_ticket;
 mod transaction;
