@@ -73,9 +73,12 @@ create table project_tags (
 -- Say an entity deposits $5,000 to the platform's escrow, and then proceeds to allocate $3,000 bounty to their project on the
 -- platform, their project now has $3,000 allocated as bounty and their escrow wallet balance is now $2,000; they proceed to
 -- withdraw $1,500 from their escrow balance to their own wallet.
+create type user_type as enum ('admin', 'support_agent', 'user');
+
 create table escrow_users (
     wallet_address varchar(66) primary key not null check (wallet_address ~ '0x[a-fA-F0-9]{64}$'),
     balance numeric(30, 2) not null default 0.0 check (balance >= 0),
+    type user_type not null default 'user',
     created_at timestamptz not null default now(),
     updated_at timestamptz
 );
@@ -270,7 +273,7 @@ create table request_ticket (
 
     -- Ticket Status and Resolution
     status ticket_status_type not null default 'open',
-    assigned_to varchar(66) not null check (assigned_to ~ '0x[a-fA-F0-9]{64}$'),
+    assigned_to varchar(66) check (assigned_to ~ '0x[a-fA-F0-9]{64}$'),
     response_subject varchar(50) not null check (response_subject <> ''),
     resolution_response text check (length(resolution_response) <= 5000),
     resolved boolean default false,
@@ -279,6 +282,35 @@ create table request_ticket (
     created_at timestamptz not null default now(),
     resolved_at timestamptz,
     updated_at timestamptz
+);
+
+
+create type subscriber_status as enum ('pending',
+    'active',
+    'unsubscribed',
+    'bounced',
+    'spam_complaint'
+);
+
+create table newsletter_subscribers (
+    id uuid primary key default uuid_generate_v1mc(),
+
+    -- Subscriber Meta
+    email text not null unique check (
+      email ~* '^[a-zA-Z0-9.!#$%&''*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$'
+    ),
+    name varchar(255) not null check (name <> ''),
+    status subscriber_status not null default 'pending',
+    subscribed_at timestamptz,
+
+    -- Timestamps
+    created_at timestamptz not null default now(),
+    updated_at timestamptz
+);
+
+create table subscription_token(
+    subscription_token text primary key not null,
+    subscriber_id uuid not null references newsletter_subscribers (id)
 );
 
 -- Sample Queries
