@@ -32,12 +32,12 @@ tokio = { version = "1.45.1", features = [
 ] }
 tower = "0.5.2"
 sqlx = { version = "0.8.6", features = [
-    "runtime-tokio",
-    "postgres",
-    "macros",
-    "bigdecimal",
-    "chrono",
-    "uuid",
+  "postgres",
+  "macros",
+  "bigdecimal",
+  "chrono",
+  "uuid",
+  "runtime-tokio-native-tls"
 ] }
 thiserror = "1.0"
 log = "0.4"
