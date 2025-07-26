@@ -7,12 +7,13 @@ use bigdecimal::BigDecimal;
 use serde_json::json;
 use uuid::Uuid;
 
-#[tokio::test]
-async fn test_close_project_success() {
-    let app = TestApp::new().await;
-    let owner_address = generate_address();
+pub async fn create_project(
+    app: &TestApp,
+    owner_address: &str,
+    closed_at: Option<chrono::DateTime<chrono::Utc>>,
+) -> Uuid {
     sqlx::query!(
-        "INSERT INTO escrow_users (wallet_address) VALUES ($1)",
+        "INSERT INTO escrow_users (wallet_address) VALUES ($1) ON CONFLICT (wallet_address) DO NOTHING",
         owner_address
     )
     .execute(&app.db.pool)
@@ -24,9 +25,9 @@ async fn test_close_project_success() {
         INSERT INTO projects (
             owner_address, contract_address, name, description, contact_info,
             supporting_document_path, project_logo_path, repository_url,
-            bounty_amount, bounty_currency, bounty_expiry_date
+            bounty_amount, bounty_currency, bounty_expiry_date, closed_at
         ) VALUES (
-            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
         ) RETURNING id
         "#,
         owner_address,
@@ -39,11 +40,21 @@ async fn test_close_project_success() {
         "https://github.com/starkyield",
         BigDecimal::from(1000),
         "USD",
-        chrono::Utc::now() + chrono::Duration::days(30)
+        chrono::Utc::now() + chrono::Duration::days(30),
+        closed_at
     )
     .fetch_one(&app.db.pool)
     .await
     .unwrap();
+
+    project_id
+}
+
+#[tokio::test]
+async fn test_close_project_success() {
+    let app = TestApp::new().await;
+    let owner_address = generate_address();
+    let project_id = create_project(&app, &owner_address, None).await;
 
     let req = Request::post("/closed_project")
         .header("content-type", "application/json")
@@ -79,40 +90,7 @@ async fn test_close_project_success() {
 async fn test_close_project_with_partial_refund() {
     let app = TestApp::new().await;
     let owner_address = generate_address();
-
-    sqlx::query!(
-        "INSERT INTO escrow_users (wallet_address, balance) VALUES ($1, 0)",
-        owner_address
-    )
-    .execute(&app.db.pool)
-    .await
-    .unwrap();
-
-    let project_id = sqlx::query_scalar!(
-        r#"
-        INSERT INTO projects (
-            owner_address, contract_address, name, description, contact_info,
-            supporting_document_path, project_logo_path, repository_url,
-            bounty_amount, bounty_currency, bounty_expiry_date
-        ) VALUES (
-            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
-        ) RETURNING id
-        "#,
-        owner_address,
-        &generate_address(),
-        "StarkNet Yield Aggregator",
-        "A decentralized protocol for yield farming on the StarkNet ecosystem.",
-        "contact@starkyield.com",
-        "https://github.com/starkyield/doc.pdf",
-        "https://github.com/starkyield/logo.png",
-        "https://github.com/starkyield",
-        BigDecimal::from(1000),
-        "USD",
-        chrono::Utc::now() + chrono::Duration::days(30)
-    )
-    .fetch_one(&app.db.pool)
-    .await
-    .unwrap();
+    let project_id = create_project(&app, &owner_address, None).await;
 
     let disbursed_amount = BigDecimal::from(100);
     let disbursed_wallet = &generate_address();
@@ -219,39 +197,7 @@ async fn test_close_project_unauthorized() {
     let owner_address = generate_address();
     let attacker_address = generate_address();
 
-    sqlx::query!(
-        "INSERT INTO escrow_users (wallet_address) VALUES ($1)",
-        owner_address
-    )
-    .execute(&app.db.pool)
-    .await
-    .unwrap();
-
-    let project_id = sqlx::query_scalar!(
-        r#"
-        INSERT INTO projects (
-            owner_address, contract_address, name, description, contact_info,
-            supporting_document_path, project_logo_path, repository_url,
-            bounty_amount, bounty_currency, bounty_expiry_date
-        ) VALUES (
-            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
-        ) RETURNING id
-        "#,
-        owner_address,
-        &generate_address(),
-        "StarkNet Yield Aggregator",
-        "A decentralized protocol for yield farming on the StarkNet ecosystem.",
-        "contact@starkyield.com",
-        "https://github.com/starkyield/doc.pdf",
-        "https://github.com/starkyield/logo.png",
-        "https://github.com/starkyield",
-        BigDecimal::from(1000),
-        "USD",
-        chrono::Utc::now() + chrono::Duration::days(30)
-    )
-    .fetch_one(&app.db.pool)
-    .await
-    .unwrap();
+    let project_id = create_project(&app, &owner_address, None).await;
 
     let req = Request::post("/closed_project")
         .header("content-type", "application/json")
@@ -273,40 +219,7 @@ async fn test_close_project_already_closed() {
     let app = TestApp::new().await;
     let owner_address = generate_address();
 
-    sqlx::query!(
-        "INSERT INTO escrow_users (wallet_address) VALUES ($1)",
-        owner_address
-    )
-    .execute(&app.db.pool)
-    .await
-    .unwrap();
-
-    let project_id = sqlx::query_scalar!(
-        r#"
-        INSERT INTO projects (
-            owner_address, contract_address, name, description, contact_info,
-            supporting_document_path, project_logo_path, repository_url,
-            bounty_amount, bounty_currency, bounty_expiry_date, closed_at
-        ) VALUES (
-            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
-        ) RETURNING id
-        "#,
-        owner_address,
-        &generate_address(),
-        "StarkNet Yield Aggregator",
-        "A decentralized protocol for yield farming on the StarkNet ecosystem.",
-        "contact@starkyield.com",
-        "https://github.com/starkyield/doc.pdf",
-        "https://github.com/starkyield/logo.png",
-        "https://github.com/starkyield",
-        BigDecimal::from(1000),
-        "USD",
-        chrono::Utc::now() + chrono::Duration::days(30),
-        chrono::Utc::now()
-    )
-    .fetch_one(&app.db.pool)
-    .await
-    .unwrap();
+    let project_id = create_project(&app, &owner_address, Some(chrono::Utc::now())).await;
 
     let req = Request::post("/closed_project")
         .header("content-type", "application/json")
@@ -329,31 +242,7 @@ async fn test_close_project_user_not_exists() {
     let owner_address = generate_address();
     let non_existent_user = generate_address();
 
-    let project_id = sqlx::query_scalar!(
-        r#"
-            INSERT INTO projects (
-                owner_address, contract_address, name, description, contact_info,
-                supporting_document_path, project_logo_path, repository_url,
-                bounty_amount, bounty_currency, bounty_expiry_date
-            ) VALUES (
-                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
-            ) RETURNING id
-            "#,
-        owner_address,
-        &generate_address(),
-        "StarkNet Yield Aggregator",
-        "A decentralized protocol for yield farming on the StarkNet ecosystem.",
-        "contact@starkyield.com",
-        "https://github.com/starkyield/doc.pdf",
-        "https://github.com/starkyield/logo.png",
-        "https://github.com/starkyield",
-        BigDecimal::from(1000),
-        "USD",
-        chrono::Utc::now() + chrono::Duration::days(30)
-    )
-    .fetch_one(&app.db.pool)
-    .await
-    .unwrap();
+    let project_id = create_project(&app, &owner_address, None).await;
 
     let req = Request::post("/closed_project")
         .header("content-type", "application/json")
@@ -374,40 +263,7 @@ async fn test_close_project_user_not_exists() {
 async fn test_close_project_no_refund_needed() {
     let app = TestApp::new().await;
     let owner_address = generate_address();
-
-    sqlx::query!(
-        "INSERT INTO escrow_users (wallet_address, balance) VALUES ($1, 0)",
-        owner_address
-    )
-    .execute(&app.db.pool)
-    .await
-    .unwrap();
-
-    let project_id = sqlx::query_scalar!(
-        r#"
-            INSERT INTO projects (
-                owner_address, contract_address, name, description, contact_info,
-                supporting_document_path, project_logo_path, repository_url,
-                bounty_amount, bounty_currency, bounty_expiry_date
-            ) VALUES (
-                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
-            ) RETURNING id
-            "#,
-        owner_address,
-        &generate_address(),
-        "StarkNet Yield Aggregator",
-        "A decentralized protocol for yield farming on the StarkNet ecosystem.",
-        "contact@starkyield.com",
-        "https://github.com/starkyield/doc.pdf",
-        "https://github.com/starkyield/logo.png",
-        "https://github.com/starkyield",
-        BigDecimal::from(1000),
-        "USD",
-        chrono::Utc::now() + chrono::Duration::days(30)
-    )
-    .fetch_one(&app.db.pool)
-    .await
-    .unwrap();
+    let project_id = create_project(&app, &owner_address, None).await;
 
     let disbursed_amount = BigDecimal::from(1000);
     let disbursed_wallet = &generate_address();
