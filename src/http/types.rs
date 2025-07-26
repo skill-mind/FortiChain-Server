@@ -26,7 +26,7 @@ pub struct OpenSupportTicketRequest {
     pub opened_by: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct SupportTicket {
     pub id: String,
     pub subject: String,

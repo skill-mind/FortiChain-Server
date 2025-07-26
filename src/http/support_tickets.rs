@@ -1,24 +1,30 @@
 use axum::{
     Json, Router,
-    extract::{Query, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     routing::{get, post},
 };
+use serde::Deserialize;
 use sqlx::prelude::*;
 use uuid::Uuid;
 
 use super::types::{
-    AssignSupportTicketRequest, ListSupportedTickets, OpenSupportTicketRequest,
-    ResolveSupportTicketRequest, SupportTicketSummary,
+    AssignSupportTicketRequest, OpenSupportTicketRequest, ResolveSupportTicketRequest
 };
 use crate::AppState;
+
+#[derive(Debug, Deserialize)]
+struct Pagination {
+    page: Option<i64>,
+    page_size: Option<i64>,
+}
 
 pub(crate) fn router() -> Router<AppState> {
     Router::new()
         .route("/open_ticket", post(open_ticket_handler))
         .route("/assign_ticket", post(assign_ticket_handler))
         .route("/resolve_ticket", post(resolve_ticket_handler))
-        .route("/tickets", get(list_ticket_handler))
+        .route("/ticket_history/:wallet", get(ticket_history_handler))
     //   .route("/close_ticket", post(close_ticket_handler))
     //   .route("/unassign_ticket", post(unassign_ticket_handler))
 }
@@ -210,6 +216,62 @@ pub async fn assign_ticket_handler(
     }
 }
 
+#[tracing::instrument(name = "ticket_history", skip(state, pagination))]
+async fn ticket_history_handler(
+    State(state): State<AppState>,
+    Path(wallet): Path<String>,
+    Query(pagination): Query<Pagination>,
+) -> Result<Json<Vec<super::types::SupportTicket>>, StatusCode> {
+    let is_valid_addr = |addr: &str| {
+        addr.starts_with("0x")
+            && addr.len() == 66
+            && addr.chars().skip(2).all(|c| c.is_ascii_hexdigit())
+    };
+
+    if !is_valid_addr(&wallet) {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
+    let page = pagination.page.unwrap_or(1).max(1);
+    let page_size = pagination.page_size.unwrap_or(20).clamp(1, 100);
+    let offset = (page - 1) * page_size;
+
+    let query = r#"
+        SELECT
+            id::TEXT as id,
+            subject,
+            message,
+            document_path,
+            opened_by,
+            status::TEXT as status,
+            assigned_to,
+            response_subject,
+            resolution_response,
+            resolved,
+            created_at::TEXT as created_at,
+            resolved_at::TEXT as resolved_at,
+            updated_at::TEXT as updated_at
+        FROM request_ticket
+        WHERE opened_by = $1
+        ORDER BY created_at DESC
+        LIMIT $2 OFFSET $3
+    "#;
+
+    let tickets = sqlx::query_as::<_, super::types::SupportTicket>(query)
+        .bind(&wallet)
+        .bind(page_size)
+        .bind(offset)
+        .fetch_all(&state.db.pool)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to fetch ticket history: {:?}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    Ok(Json(tickets))
+}
+
+
 #[tracing::instrument(name = "Resolve Ticket", skip(state, payload))]
 async fn resolve_ticket_handler(
     state: State<AppState>,
@@ -331,42 +393,4 @@ async fn resolve_ticket_handler(
             StatusCode::INTERNAL_SERVER_ERROR
         }
     }
-}
-
-#[tracing::instrument(name = "List Tickets", skip(state, params))]
-async fn list_ticket_handler(
-    State(state): State<AppState>,
-    Query(params): Query<ListSupportedTickets>,
-) -> Result<Json<Vec<SupportTicketSummary>>, StatusCode> {
-    let page = params.page.unwrap_or(1).max(1);
-    let page_size = params.page_size.unwrap_or(20).clamp(1, 100);
-    let offset = ((page - 1) * page_size) as i64;
-    let limit = page_size as i64;
-
-    let summaries = sqlx::query_as!(
-        SupportTicketSummary,
-        r#"
-        SELECT
-          id                 AS ticket_id,
-          status,
-          subject,
-          created_at,
-          updated_at
-        FROM request_ticket
-        WHERE opened_by = $1
-        ORDER BY created_at DESC
-        LIMIT $2 OFFSET $3
-        "#,
-        params.opened_by,
-        limit,
-        offset,
-    )
-    .fetch_all(&state.db)
-    .await
-    .map_err(|err| {
-        tracing::error!("list_tickets failed: {:?}", err);
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-
-    Ok(Json(summaries))
 }

@@ -628,6 +628,60 @@ async fn resolve_ticket_happy_path() {
 }
 
 #[tokio::test]
+async fn ticket_history_pagination() {
+    let app = TestApp::new().await;
+    let db = &app.db;
+
+    let user_wallet = generate_address();
+    sqlx::query("INSERT INTO escrow_users (wallet_address) VALUES ($1) ON CONFLICT DO NOTHING")
+        .bind(&user_wallet)
+        .execute(&db.pool)
+        .await
+        .expect("Failed to insert user");
+
+    for i in 0..3 {
+        sqlx::query(
+            "INSERT INTO request_ticket (subject, message, opened_by, response_subject) VALUES ($1, $2, $3, $4)",
+        )
+        .bind(format!("Subject {i}"))
+        .bind("Message")
+        .bind(&user_wallet)
+        .bind(format!("Subject {i}"))
+        .execute(&db.pool)
+        .await
+        .expect("Failed to insert ticket");
+    }
+
+    let req = Request::get(&format!("/ticket_history/{user_wallet}?page=1&page_size=2"))
+        .body(Body::empty())
+        .unwrap();
+    let res = app.request(req).await;
+    assert_eq!(res.status(), StatusCode::OK);
+    let body = to_bytes(res.into_body(), usize::MAX).await.unwrap();
+    let tickets: Vec<serde_json::Value> = serde_json::from_slice(&body).unwrap();
+    assert_eq!(tickets.len(), 2);
+
+    let req = Request::get(&format!("/ticket_history/{user_wallet}?page=2&page_size=2"))
+        .body(Body::empty())
+        .unwrap();
+    let res = app.request(req).await;
+    assert_eq!(res.status(), StatusCode::OK);
+    let body = to_bytes(res.into_body(), usize::MAX).await.unwrap();
+    let tickets: Vec<serde_json::Value> = serde_json::from_slice(&body).unwrap();
+    assert_eq!(tickets.len(), 1);
+}
+
+#[tokio::test]
+async fn ticket_history_invalid_wallet() {
+    let app = TestApp::new().await;
+    let req = Request::get("/ticket_history/notawallet")
+        .body(Body::empty())
+        .unwrap();
+    let res = app.request(req).await;
+    assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
 async fn list_tickets_handler_filters_and_paginates() {
     let app = TestApp::new().await;
     let db = &app.db;
