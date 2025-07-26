@@ -17,3 +17,4 @@ target/
 
 # Logs
 build.log
+.idea/

@@ -3,9 +3,11 @@ use axum::extract::rejection::JsonRejection;
 use axum::http::StatusCode;
 use axum::http::header::WWW_AUTHENTICATE;
 use axum::response::{IntoResponse, Response};
+use serde::Serialize;
 use sqlx::error::DatabaseError;
 use std::borrow::Cow;
 use std::collections::HashMap;
+use std::time::SystemTimeError;
 use thiserror::Error;
 
 /// A common error type that can be used throughout the API.
@@ -144,5 +146,90 @@ where
             }
             e => e,
         })
+    }
+}
+
+#[derive(Debug, Serialize)]
+pub struct ErrorResponse {
+    pub error: String,
+    pub message: String,
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum ServiceError {
+    #[error("Database error: {0}")]
+    DatabaseError(#[from] sqlx::Error),
+    #[error("System Time Error: {0}")]
+    SystemTimeError(#[from] SystemTimeError),
+    #[error("Invalid Project ID")]
+    InvalidProjectId(#[from] uuid::Error),
+    // decided to use variant more generic for other fields
+    #[error("Amount cannot be zero or less")]
+    InvalidAmount,
+    #[error("Entity not found")]
+    EntityNotFound,
+    #[error("Insufficient funds")]
+    InsufficientFunds,
+}
+
+impl From<ServiceError> for (StatusCode, Json<ErrorResponse>) {
+    fn from(err: ServiceError) -> Self {
+        let (status, error_type, message) = match err {
+            ServiceError::DatabaseError(_) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "database_error",
+                "Internal server error occurred",
+            ),
+            ServiceError::SystemTimeError(_) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "system_time_error",
+                "Time went backwards",
+            ),
+            ServiceError::InvalidProjectId(_) => (
+                StatusCode::BAD_REQUEST,
+                "invalid_project_id",
+                "The provided project ID is invalid",
+            ),
+            ServiceError::InvalidAmount => (
+                StatusCode::BAD_REQUEST,
+                "invalid_amount",
+                "The provided amount is invalid",
+            ),
+            ServiceError::EntityNotFound => (
+                StatusCode::NOT_FOUND,
+                "entity_not_found",
+                "The requested entity was not found",
+            ),
+            ServiceError::InsufficientFunds => (
+                StatusCode::FORBIDDEN,
+                "insufficient_funds",
+                "Insufficient funds",
+            ),
+        };
+
+        (
+            status,
+            Json(ErrorResponse {
+                error: error_type.to_string(),
+                message: message.to_string(),
+            }),
+        )
+    }
+}
+
+impl From<ServiceError> for Error {
+    fn from(err: ServiceError) -> Self {
+        match err {
+            ServiceError::InvalidProjectId(_) => {
+                Error::unprocessable_entity([("project_id", "is invalid")])
+            }
+            ServiceError::DatabaseError(_) => Error::Forbidden,
+            ServiceError::SystemTimeError(_) => Error::Forbidden,
+            ServiceError::InvalidAmount => {
+                Error::InvalidRequest("Amount cannot be zero or less".to_string())
+            }
+            ServiceError::EntityNotFound => Error::NotFound,
+            ServiceError::InsufficientFunds => Error::Forbidden,
+        }
     }
 }

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE escrow_users SET balance = balance - $1, updated_at = NOW() WHERE wallet_address = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Numeric",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "75e917a33b9aeaabc020d9d5767d4fbb912cc7ea9be9d750bb5cfe25d6150abc"
+}
