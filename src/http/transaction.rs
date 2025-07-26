@@ -90,7 +90,7 @@ impl EscrowService {
         "#;
 
         let user = sqlx::query_as::<_, EscrowUsers>(query)
-            .bind(&wallet_address)
+            .bind(wallet_address)
             .fetch_optional(&mut **tx)
             .await
             .map_err(|e| {
@@ -116,7 +116,7 @@ impl EscrowService {
 
         let current_date_time = Utc::now();
         sqlx::query(update_query)
-            .bind(&new_balance)
+            .bind(new_balance)
             .bind(current_date_time)
             .bind(wallet_address)
             .execute(&mut **tx)
