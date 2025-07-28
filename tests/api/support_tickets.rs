@@ -825,3 +825,61 @@ async fn list_tickets_handler_invalid_status_param() {
     let res = app.request(req).await;
     assert_eq!(res.status(), StatusCode::BAD_REQUEST);
 }
+
+
+#[tokio::test]
+async fn ticket_history_pagination() {
+    let app = TestApp::new().await;
+    let db = &app.db;
+
+    let wallet = generate_address();
+    sqlx::query("INSERT INTO escrow_users (wallet_address) VALUES ($1) ON CONFLICT DO NOTHING")
+        .bind(&wallet)
+        .execute(&db.pool)
+        .await
+        .expect("Failed to insert user");
+
+    for i in 0..5i64 {
+        let subject = format!("Sub {}", i);
+        let created_at = Utc::now() + ChronoDuration::seconds(i);
+        sqlx::query(
+            r#"INSERT INTO request_ticket (subject, message, opened_by, status, response_subject, created_at)
+               VALUES ($1, $2, $3, 'open', $4, $5)"#,
+        )
+        .bind(&subject)
+        .bind("msg")
+        .bind(&wallet)
+        .bind(&subject)
+        .bind(created_at)
+        .execute(&db.pool)
+        .await
+        .expect("Failed to insert ticket");
+    }
+
+    let req = Request::get(&format!("/ticket_history/{wallet}?page=1&page_size=3"))
+        .body(Body::empty())
+        .unwrap();
+    let res = app.request(req).await;
+    assert_eq!(res.status(), StatusCode::OK);
+    let body = axum::body::to_bytes(res.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let tickets: Vec<serde_json::Value> = serde_json::from_slice(&body).unwrap();
+    assert_eq!(tickets.len(), 3);
+    assert_eq!(tickets[0]["subject"], "Sub 4");
+    assert_eq!(tickets[1]["subject"], "Sub 3");
+    assert_eq!(tickets[2]["subject"], "Sub 2");
+
+    let req = Request::get(&format!("/ticket_history/{wallet}?page=2&page_size=3"))
+        .body(Body::empty())
+        .unwrap();
+    let res = app.request(req).await;
+    assert_eq!(res.status(), StatusCode::OK);
+    let body = axum::body::to_bytes(res.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let tickets: Vec<serde_json::Value> = serde_json::from_slice(&body).unwrap();
+    assert_eq!(tickets.len(), 2);
+    assert_eq!(tickets[0]["subject"], "Sub 1");
+    assert_eq!(tickets[1]["subject"], "Sub 0");
+}
