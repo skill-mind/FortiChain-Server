@@ -18,6 +18,7 @@ mod project;
 mod support_ticket;
 mod transaction;
 mod types;
+mod validator;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -53,6 +54,7 @@ pub fn api_router(app_state: AppState) -> Router {
         .merge(project::router())
         .merge(support_ticket::router())
         .merge(escrow::router())
+        .merge(validator::router())
         .layer(trace_layer)
         .layer(request_id_layer)
         .layer(propagate_request_id_layer)
