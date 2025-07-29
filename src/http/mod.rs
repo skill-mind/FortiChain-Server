@@ -14,6 +14,7 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 mod escrow;
 mod health_check;
+pub mod newsletter;
 mod project;
 mod support_ticket;
 mod transaction;
@@ -49,10 +50,11 @@ pub fn api_router(app_state: AppState) -> Router {
 
     Router::new()
         .merge(health_check::router())
-        .merge(transaction::router())
         .merge(project::router())
+        .merge(transaction::router())
         .merge(support_ticket::router())
         .merge(escrow::router())
+        .merge(newsletter::router())
         .layer(trace_layer)
         .layer(request_id_layer)
         .layer(propagate_request_id_layer)
