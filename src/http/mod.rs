@@ -19,6 +19,7 @@ mod project;
 mod support_ticket;
 mod transaction;
 mod types;
+mod validator;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -53,6 +54,7 @@ pub fn api_router(app_state: AppState) -> Router {
         .merge(support_ticket::router())
         .merge(escrow::router())
         .merge(newsletter::router())
+        .merge(validator::router())
         .layer(trace_layer)
         .layer(request_id_layer)
         .layer(propagate_request_id_layer)
@@ -80,8 +82,5 @@ async fn shutdown_signal() {
     #[cfg(not(unix))]
     let terminate = std::future::pending::<()>();
 
-    tokio::select! {
-        _ = ctrl_c => {},
-        _ = terminate => {},
-    }
+    tokio::select! {_ = ctrl_c => {}, _ = terminate => {},}
 }

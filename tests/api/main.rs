@@ -7,3 +7,4 @@ mod newsletter;
 mod projects;
 mod support_tickets;
 mod transaction;
+mod validator;
