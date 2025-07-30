@@ -65,7 +65,6 @@ async fn test_withdraw_successful() {
     let app = TestApp::new().await;
     let db = &app.db;
 
-    // Setup: Create escrow user with sufficient balance
     let wallet = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd";
     let initial_balance = BigDecimal::from(20000000);
     sqlx::query!(
@@ -86,7 +85,7 @@ async fn test_withdraw_successful() {
     let withdrawal_amount = BigDecimal::from(10000000);
     let payload = json!({
         "wallet_address": wallet,
-        "amount": withdrawal_amount.to_string(), // Convert BigDecimal to string for JSON
+        "amount": withdrawal_amount.to_string(),
         "currency": "USDT",
         "notes": "Project withdrawal",
         "transaction_hash": tx_hash
@@ -100,7 +99,6 @@ async fn test_withdraw_successful() {
     let res = app.request(request).await;
     assert_eq!(res.status(), StatusCode::CREATED);
 
-    // Verify balance was reduced - use explicit type annotation
     let updated_balance: BigDecimal = sqlx::query_scalar!(
         "SELECT balance FROM escrow_users WHERE wallet_address = $1",
         wallet
@@ -111,18 +109,17 @@ async fn test_withdraw_successful() {
 
     assert_eq!(updated_balance, initial_balance - withdrawal_amount.clone());
 
-    // Verify transaction was recorded - select specific columns with type annotations
     #[derive(Debug, sqlx::FromRow)]
     struct Transaction {
         amount: BigDecimal,
-        r#type: String, // Or use your custom enum type if defined
+        r#type: String,
     }
 
     let transaction = sqlx::query_as!(
         Transaction,
         r#"
-        SELECT amount, type as "type!: String" 
-        FROM escrow_transactions 
+        SELECT amount, type as "type!: String"
+        FROM escrow_transactions
         WHERE wallet_address = $1 AND transaction_hash = $2
         "#,
         wallet,
@@ -169,7 +166,7 @@ async fn test_withdraw_insufficient_balance() {
         .unwrap();
 
     let res = app.request(request).await;
-    assert_eq!(res.status(), StatusCode::CONFLICT);
+    assert_eq!(res.status(), StatusCode::BAD_REQUEST);
 
     // Verify balance wasn't changed
     let current_balance = sqlx::query!(

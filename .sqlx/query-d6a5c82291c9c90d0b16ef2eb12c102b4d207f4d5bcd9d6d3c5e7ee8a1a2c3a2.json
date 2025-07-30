@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        WITH balance_update AS (\n            UPDATE escrow_users\n            SET balance = balance - $2\n            WHERE wallet_address = $1 AND balance >= $2\n            RETURNING 1\n        )\n        INSERT INTO escrow_transactions (\n            wallet_address, amount, currency, transaction_hash, notes, type, status\n        )\n        SELECT $1, $2, $3, $4, $5, 'withdrawal', 'completed'\n        FROM balance_update\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Numeric",
+        "Varchar",
+        "Varchar",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d6a5c82291c9c90d0b16ef2eb12c102b4d207f4d5bcd9d6d3c5e7ee8a1a2c3a2"
+}
