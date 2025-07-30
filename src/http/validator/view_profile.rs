@@ -3,7 +3,7 @@ use axum::{Json, extract::State, http::StatusCode};
 use garde::Validate;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
-use uuid::Uuid;
+// ...existing code...
 
 #[derive(Debug, Serialize, Deserialize, Validate)]
 pub struct ViewValidatorProfileRequest {
@@ -40,7 +40,17 @@ async fn get_validator_profile(
     pool: &PgPool,
     wallet_address: &str,
 ) -> Result<Option<ValidatorProfileResponse>> {
-    let row = sqlx::query!(
+    #[derive(sqlx::FromRow)]
+    struct ValidatorProfileRow {
+        government_name: String,
+        email_address: String,
+        years_of_experience: i16,
+        verification: String,
+        programming_languages: Option<Vec<String>>,
+        expertise: Option<Vec<String>>,
+    }
+
+    let row = sqlx::query_as::<_, ValidatorProfileRow>(
         r#"
         SELECT
             vp.government_name,
@@ -63,9 +73,9 @@ async fn get_validator_profile(
             vp.wallet_address = $1
         GROUP BY
             vp.id
-        "#,
-        wallet_address
+        "#
     )
+    .bind(wallet_address)
     .fetch_optional(pool)
     .await?;
 
