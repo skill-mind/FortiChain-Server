@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE newsletter_subscribers\n        SET\n            status = 'active',\n            subscribed_at = $2,\n            updated_at = $2\n        WHERE id = $1\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "48830c12fec186883495535f2beae4ebf5ea33b7f6c9c99db8588ff79d8af0bc"
+}

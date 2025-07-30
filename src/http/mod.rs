@@ -14,10 +14,12 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 mod escrow;
 mod health_check;
+pub mod newsletter;
 mod project;
 mod support_ticket;
 mod transaction;
 mod types;
+mod validator;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -28,9 +30,7 @@ pub struct AppState {
 pub async fn serve(configuration: Arc<Configuration>, db: Db) -> anyhow::Result<()> {
     let addr = configuration.listen_address;
     let app_state = AppState { configuration, db };
-
     let app = api_router(app_state);
-
     tracing::info!("Listening for requests on {}", addr);
     let listener = TcpListener::bind(addr).await?;
     axum::serve(listener, app)
@@ -49,10 +49,12 @@ pub fn api_router(app_state: AppState) -> Router {
 
     Router::new()
         .merge(health_check::router())
-        .merge(transaction::router())
         .merge(project::router())
+        .merge(transaction::router())
         .merge(support_ticket::router())
         .merge(escrow::router())
+        .merge(newsletter::router())
+        .merge(validator::router())
         .layer(trace_layer)
         .layer(request_id_layer)
         .layer(propagate_request_id_layer)
