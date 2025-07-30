@@ -3,7 +3,7 @@ use axum::{
     body::Body,
     http::{Request, StatusCode},
 };
-use fortichain_server::http::newsletter::domain::NewsletterSubscriber;
+use fortichain_server::http::newsletter::domain::{NewsletterSubscriber, SubscriberStatus};
 use serde_json::json;
 use sqlx::Row;
 use uuid::Uuid;
@@ -180,16 +180,25 @@ async fn subscribe_returns_a_200_for_valid_form_data() {
     // Assert
     assert_eq!(response.status(), StatusCode::CREATED);
 
-    let saved = sqlx::query_as!(
-        NewsletterSubscriber,
-        "SELECT email, name FROM newsletter_subscribers",
+    let saved = sqlx::query!(
+        "SELECT id, email, name, status as \"status!: SubscriberStatus\", subscribed_at, created_at, updated_at FROM newsletter_subscribers",
     )
     .fetch_one(&app.db.pool)
     .await
     .expect("Failed to fetch saved subscriber.");
 
-    assert_eq!(saved.email, "test@example.com");
-    assert_eq!(saved.name, "Test");
+    let subscriber = NewsletterSubscriber {
+        id: saved.id,
+        email: saved.email,
+        name: saved.name,
+        status: saved.status,
+        subscribed_at: saved.subscribed_at,
+        created_at: saved.created_at,
+        updated_at: saved.updated_at,
+    };
+
+    assert_eq!(subscriber.email, "test@example.com");
+    assert_eq!(subscriber.name, "Test");
 }
 
 #[tokio::test]

@@ -45,7 +45,7 @@ pub fn api_router(app_state: AppState) -> Router {
     let cors_layer = cors_layer();
     let timeout_layer = timeout_layer();
     let normalize_path_layer = normalize_path_layer();
-    
+
     Router::new()
         .merge(health_check::router())
         .merge(project::router())
@@ -68,7 +68,7 @@ async fn shutdown_signal() {
             .await
             .expect("failed to configure ctrl+c handler");
     };
-    
+
     #[cfg(unix)]
     let terminate = async {
         signal::unix::signal(signal::unix::SignalKind::terminate())
@@ -76,10 +76,10 @@ async fn shutdown_signal() {
             .recv()
             .await;
     };
-    
+
     #[cfg(not(unix))]
     let terminate = std::future::pending::<()>();
-    
+
     tokio::select! {
         _ = ctrl_c => {},
         _ = terminate => {},

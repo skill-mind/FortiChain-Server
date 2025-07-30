@@ -2,8 +2,8 @@ pub mod domain;
 pub mod subscribe;
 mod verify_subscriber;
 
-use axum::{Router, routing::post};
 use crate::AppState;
+use axum::{Router, routing::post};
 
 pub fn router() -> Router<AppState> {
     Router::new()
