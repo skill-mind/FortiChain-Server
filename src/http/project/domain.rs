@@ -104,3 +104,71 @@ pub fn validate_bounty_expiry_date(date: &Option<DateTime<Utc>>, _context: &()) 
     }
     Ok(())
 }
+
+#[derive(Debug, Deserialize, Validate)]
+pub struct ListProjectsQuery {
+    #[garde(custom(validate_starknet_address_optional))]
+    pub owner_address: Option<String>,
+    #[garde(skip)]
+    pub active_only: Option<bool>, // Filter by closed_at being null
+    #[garde(skip)]
+    pub has_bounty: Option<bool>, // Filter by bounty_amount being not null
+    #[garde(custom(validate_sort_by))]
+    pub sort_by: Option<String>, // "created_at" (default), "bounty_amount", "name"
+    #[garde(custom(validate_sort_order))]
+    pub sort_order: Option<String>, // "desc" (default), "asc"
+    #[garde(range(min = 1, max = 20))]
+    pub limit: Option<i64>, // Max 20, default 10
+    #[garde(skip)]
+    pub offset: Option<i64>, // Default 0
+}
+
+#[derive(Debug, Serialize)]
+pub struct ProjectListItem {
+    pub id: Uuid,
+    pub name: String,
+    pub owner_address: String,
+    pub contract_address: String,
+    pub description: String,
+    pub is_verified: bool,
+    pub verification_date: Option<DateTime<Utc>>,
+    pub repository_url: Option<String>,
+    pub bounty_amount: Option<BigDecimal>,
+    pub bounty_currency: Option<String>,
+    pub bounty_expiry_date: Option<DateTime<Utc>>,
+    pub tags: Vec<String>,
+    pub created_at: DateTime<Utc>,
+    pub closed_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ListProjectsResponse {
+    pub projects: Vec<ProjectListItem>,
+    pub total_count: i64,
+    pub has_next: bool,
+}
+
+pub fn validate_starknet_address_optional(addr: &Option<String>, _context: &()) -> garde::Result {
+    if let Some(addr) = addr {
+        validate_starknet_address(addr, _context)?;
+    }
+    Ok(())
+}
+
+pub fn validate_sort_by(sort_by: &Option<String>, _context: &()) -> garde::Result {
+    if let Some(sort_by) = sort_by {
+        if !["created_at", "bounty_amount", "name"].contains(&sort_by.as_str()) {
+            return Err(garde::Error::new("Invalid sort_by field"));
+        }
+    }
+    Ok(())
+}
+
+pub fn validate_sort_order(sort_order: &Option<String>, _context: &()) -> garde::Result {
+    if let Some(sort_order) = sort_order {
+        if !["asc", "desc"].contains(&sort_order.as_str()) {
+            return Err(garde::Error::new("Invalid sort_order"));
+        }
+    }
+    Ok(())
+}

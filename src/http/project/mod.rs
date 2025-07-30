@@ -1,6 +1,7 @@
 mod close_project;
 mod create_project;
 mod domain;
+mod list_projects;
 mod project_detail_view;
 mod shared;
 mod verify_project;
@@ -30,5 +31,9 @@ pub(crate) fn router() -> Router<AppState> {
         .route(
             "/projects/{project_id}",
             get(project_detail_view::get_project_detail_view),
+        )
+        .route(
+            "/projects",
+            get(list_projects::list_projects_handler),
         )
 }
