@@ -1,0 +1,71 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT \n            ns.id,\n            ns.email,\n            ns.name,\n            ns.status as \"status!: String\",\n            ns.subscribed_at,\n            ns.created_at,\n            ns.updated_at\n        FROM newsletter_subscribers ns\n        INNER JOIN subscription_token st ON ns.id = st.subscriber_id\n        WHERE st.subscription_token = $1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "email",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "status!: String",
+        "type_info": {
+          "Custom": {
+            "name": "subscriber_status",
+            "kind": {
+              "Enum": [
+                "pending",
+                "active",
+                "unsubscribed",
+                "bounced",
+                "spam_complaint"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "subscribed_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "900f50b9fdbdb54ed5d09227041097cd3bb7e3c3227a4130dc5273cb3999ace1"
+}
