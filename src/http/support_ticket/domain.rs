@@ -87,3 +87,10 @@ pub fn validate_query_status(statuses: &Option<String>, _context: &()) -> garde:
     }
     Ok(())
 }
+
+#[derive(Debug, serde::Deserialize)]
+struct TicketHistoryParams {
+    wallet: String,
+    page: Option<u32>,
+    limit: Option<u32>,
+}

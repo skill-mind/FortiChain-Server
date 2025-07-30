@@ -21,4 +21,5 @@ pub(crate) fn router() -> Router<AppState> {
             post(resolve_ticket::resolve_ticket_handler),
         )
         .route("/tickets", get(list_tickets::list_tickets_handler))
+        .route("/ticket_history", get(list_tickets::ticket_history_handler))
 }

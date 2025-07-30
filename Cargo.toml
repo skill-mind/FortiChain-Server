@@ -32,7 +32,7 @@ tokio = { version = "1.45.1", features = [
 ] }
 tower = "0.5.2"
 sqlx = { version = "0.8.6", features = [
-    "runtime-tokio",
+    "runtime-tokio-rustls",
     "postgres",
     "macros",
     "bigdecimal",
