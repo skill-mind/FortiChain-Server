@@ -12,6 +12,19 @@ pub enum SubscriberStatus {
     SpamComplaint,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
+pub struct NewsletterSubscriber {
+    pub id: Uuid,
+    #[garde(email)]
+    pub email: String,
+    #[garde(length(min = 2, max = 255))]
+    pub name: String,
+    pub status: SubscriberStatus,
+    pub subscribed_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
 #[derive(Debug, Deserialize, Validate)]
 pub struct VerifySubscriberRequest {
     #[garde(ascii, length(min = 1))]
@@ -24,15 +37,4 @@ pub struct VerifySubscriberResponse {
     pub subscriber_id: Uuid,
     pub email: String,
     pub verified_at: chrono::DateTime<chrono::Utc>,
-}
-
-#[derive(Debug, Serialize)]
-pub struct NewsletterSubscriber {
-    pub id: Uuid,
-    pub email: String,
-    pub name: String,
-    pub status: SubscriberStatus,
-    pub subscribed_at: Option<chrono::DateTime<chrono::Utc>>,
-    pub created_at: chrono::DateTime<chrono::Utc>,
-    pub updated_at: Option<chrono::DateTime<chrono::Utc>>,
 }
