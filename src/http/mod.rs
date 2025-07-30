@@ -29,9 +29,7 @@ pub struct AppState {
 pub async fn serve(configuration: Arc<Configuration>, db: Db) -> anyhow::Result<()> {
     let addr = configuration.listen_address;
     let app_state = AppState { configuration, db };
-
     let app = api_router(app_state);
-
     tracing::info!("Listening for requests on {}", addr);
     let listener = TcpListener::bind(addr).await?;
     axum::serve(listener, app)
@@ -82,5 +80,8 @@ async fn shutdown_signal() {
     #[cfg(not(unix))]
     let terminate = std::future::pending::<()>();
 
-    tokio::select! {_ = ctrl_c => {}, _ = terminate => {},}
+    tokio::select! {
+        _ = ctrl_c => {},
+        _ = terminate => {},
+    }
 }
