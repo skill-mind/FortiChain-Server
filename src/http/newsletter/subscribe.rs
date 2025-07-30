@@ -6,22 +6,11 @@ use axum::{
     routing::{Router, post},
 };
 use garde::Validate;
-use serde::Deserialize;
-use sqlx::PgPool;
-use sqlx::types::Uuid;
 
-use crate::{AppState, Result, db::Db, http::newsletter::domain::NewsletterSubscriber};
+use crate::{AppState, Result, http::newsletter::domain::NewsletterSubscriber};
 
 pub fn router() -> Router<AppState> {
     Router::new().route("/subscribe", post(subscribe_handler))
-}
-
-#[derive(Debug, Deserialize, Validate)]
-pub struct SubscribeRequest {
-    #[garde(email)]
-    email: String,
-    #[garde(length(min = 2, max = 255))]
-    name: String,
 }
 
 #[tracing::instrument(
@@ -34,33 +23,21 @@ pub struct SubscribeRequest {
 )]
 pub async fn subscribe_handler(
     state: State<AppState>,
-    Json(req): Json<SubscribeRequest>,
+    Json(req): Json<NewsletterSubscriber>,
 ) -> Result<impl IntoResponse> {
     req.validate()?;
-    let subscriber = NewsletterSubscriber {
-        email: req.email,
-        name: req.name,
-    };
 
-    Db::add_subscriber(&state.db.pool, &subscriber).await?;
+    sqlx::query!(
+        r#"
+        INSERT INTO newsletter_subscribers (email, name)
+        VALUES ($1, $2)
+        RETURNING id
+        "#,
+        req.email,
+        req.name
+    )
+    .fetch_one(&state.db.pool)
+    .await?;
 
-    Ok(StatusCode::OK)
-}
-
-impl Db {
-    pub async fn add_subscriber(pool: &PgPool, subscriber: &NewsletterSubscriber) -> Result<Uuid> {
-        let result = sqlx::query!(
-            r#"
-            INSERT INTO newsletter_subscribers (email, name)
-            VALUES ($1, $2)
-            RETURNING id
-            "#,
-            subscriber.email,
-            subscriber.name
-        )
-        .fetch_one(pool)
-        .await?;
-
-        Ok(result.id)
-    }
+    Ok(StatusCode::CREATED)
 }

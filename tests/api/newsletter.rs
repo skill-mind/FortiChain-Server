@@ -24,7 +24,7 @@ async fn subscribe_returns_a_200_for_valid_form_data() {
     let response = app.request(req).await;
 
     // Assert
-    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(response.status(), StatusCode::CREATED);
 
     let saved = sqlx::query_as!(
         NewsletterSubscriber,
