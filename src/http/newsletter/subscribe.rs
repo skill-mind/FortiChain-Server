@@ -7,7 +7,7 @@ use axum::{
 };
 use garde::Validate;
 
-use crate::{AppState, Result, http::newsletter::domain::NewsletterSubscriber};
+use crate::{AppState, Result, http::newsletter::domain::SubscribeNewsletterRequest};
 
 pub fn router() -> Router<AppState> {
     Router::new().route("/subscribe", post(subscribe_handler))
@@ -23,7 +23,7 @@ pub fn router() -> Router<AppState> {
 )]
 pub async fn subscribe_handler(
     state: State<AppState>,
-    Json(req): Json<NewsletterSubscriber>,
+    Json(req): Json<SubscribeNewsletterRequest>,
 ) -> Result<impl IntoResponse> {
     req.validate()?;
 

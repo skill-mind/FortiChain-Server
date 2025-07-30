@@ -31,6 +31,14 @@ pub struct NewsletterSubscriber {
 }
 
 #[derive(Debug, Deserialize, Validate)]
+pub struct SubscribeNewsletterRequest {
+    #[garde(email)]
+    pub email: String,
+    #[garde(length(min = 2, max = 255))]
+    pub name: String,
+}
+
+#[derive(Debug, Deserialize, Validate)]
 pub struct VerifySubscriberRequest {
     #[garde(ascii, length(min = 1))]
     pub token: String,
