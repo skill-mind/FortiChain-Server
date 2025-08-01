@@ -5,6 +5,7 @@ mod health_check;
 mod helpers;
 mod newsletter;
 mod projects;
+mod report;
 mod support_tickets;
 mod transaction;
 mod validator;
