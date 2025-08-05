@@ -13,10 +13,10 @@ pub struct CreateProjectRequest {
     pub supporting_document_path: Option<String>,
     pub project_logo_path: Option<String>,
     pub repository_url: Option<String>,
+    pub tags: Vec<String>,
     pub bounty_amount: Option<BigDecimal>,
     pub bounty_currency: Option<String>,
     pub bounty_expiry_date: Option<DateTime<Utc>>,
-    pub tags: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -25,7 +25,7 @@ pub struct AllocateBountyRequest {
     pub project_contract_address: String,
     pub amount: BigDecimal,
     pub currency: String,
-    pub bounty_expiry_date: DateTime<Utc>,
+    pub bounty_expiry_date: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Deserialize)]
