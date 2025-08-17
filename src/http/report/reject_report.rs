@@ -89,10 +89,7 @@ pub async fn reject_report(
     ))
 }
 
-async fn get_report_by_id(
-    pool: &PgPool,
-    report_id: &Uuid,
-) -> Result<Option<Report>> {
+async fn get_report_by_id(pool: &PgPool, report_id: &Uuid) -> Result<Option<Report>> {
     let report = sqlx::query_as::<_, Report>(
         r#"
         SELECT 

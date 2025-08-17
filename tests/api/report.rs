@@ -11,7 +11,7 @@ async fn test_reject_report_success() {
     // Create a test project first (using correct schema fields)
     let project_id = Uuid::now_v7();
     let project_wallet = generate_address();
-    
+
     sqlx::query(
         r#"
         INSERT INTO projects (
@@ -69,13 +69,12 @@ async fn test_reject_report_success() {
     assert_eq!(status, StatusCode::OK);
 
     // Verify the report has been rejected
-    let report_status = sqlx::query_scalar::<_, String>(
-        "SELECT status::text FROM research_report WHERE id = $1",
-    )
-    .bind(report_id)
-    .fetch_one(&db.pool)
-    .await
-    .expect("Failed to check report status");
+    let report_status =
+        sqlx::query_scalar::<_, String>("SELECT status::text FROM research_report WHERE id = $1")
+            .bind(report_id)
+            .fetch_one(&db.pool)
+            .await
+            .expect("Failed to check report status");
 
     assert_eq!(report_status, "rejected");
 
@@ -93,7 +92,13 @@ async fn test_reject_report_success() {
     .expect("Failed to fetch rejected report");
 
     assert_eq!(report.reason, Some("incomplete_information".to_string()));
-    assert_eq!(report.validator_notes, Some("The report lacks sufficient technical details to assess the vulnerability.".to_string()));
+    assert_eq!(
+        report.validator_notes,
+        Some(
+            "The report lacks sufficient technical details to assess the vulnerability."
+                .to_string()
+        )
+    );
     assert_eq!(report.validated_by, Some(validator_wallet));
 }
 
@@ -131,7 +136,7 @@ async fn test_reject_report_already_rejected() {
     // Create a test project (using correct schema fields)
     let project_id = Uuid::now_v7();
     let project_wallet = generate_address();
-    
+
     sqlx::query(
         r#"
         INSERT INTO projects (
@@ -199,7 +204,7 @@ async fn test_reject_report_unauthorized_validator() {
     // Create a test project (using correct schema fields)
     let project_id = Uuid::now_v7();
     let project_wallet = generate_address();
-    
+
     sqlx::query(
         r#"
         INSERT INTO projects (
@@ -267,7 +272,7 @@ async fn test_reject_report_invalid_reason() {
     // Create a test project (using correct schema fields)
     let project_id = Uuid::now_v7();
     let project_wallet = generate_address();
-    
+
     sqlx::query(
         r#"
         INSERT INTO projects (
@@ -380,7 +385,7 @@ async fn test_reject_report_without_notes() {
     // Create a test project (using correct schema fields)
     let project_id = Uuid::now_v7();
     let project_wallet = generate_address();
-    
+
     sqlx::query(
         r#"
         INSERT INTO projects (

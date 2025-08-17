@@ -26,6 +26,7 @@ pub struct RejectReportResponse {
 }
 
 #[derive(Debug, sqlx::FromRow)]
+#[allow(dead_code)] // Fields are part of database schema and will be used in future functionality
 pub struct Report {
     pub id: Uuid,
     pub title: String,
@@ -33,10 +34,10 @@ pub struct Report {
     pub body: String,
     pub reported_by: String,
     pub validated_by: Option<String>,
-    pub status: String, // Cast from enum to string in query
+    pub status: String,           // Cast from enum to string in query
     pub severity: Option<String>, // Cast from enum to string in query
     pub allocated_reward: Option<sqlx::types::BigDecimal>, // Use BigDecimal for numeric fields
-    pub reason: Option<String>, // Cast from enum to string in query
+    pub reason: Option<String>,   // Cast from enum to string in query
     pub validator_notes: Option<String>,
     pub researcher_response: Option<String>,
     pub created_at: chrono::DateTime<chrono::Utc>,
@@ -46,11 +47,11 @@ pub struct Report {
 pub fn validate_rejection_reason(reason: &str, _context: &()) -> garde::Result {
     let valid_reasons = [
         "duplicate_report",
-        "incomplete_information", 
+        "incomplete_information",
         "already_known",
-        "out_of_scope"
+        "out_of_scope",
     ];
-    
+
     if valid_reasons.contains(&reason) {
         Ok(())
     } else {
