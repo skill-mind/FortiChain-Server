@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO escrow_users (wallet_address, balance) VALUES ($1, 0)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "11aa9c9cfe5c77fcb19baf0c6d41d656796e4d72978756c3794a80a193daaf42"
+}
