@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT reason::text as reason, validator_notes, validated_by \n        FROM research_report \n        WHERE id = $1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "reason",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "validator_notes",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "validated_by",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      true,
+      true
+    ]
+  },
+  "hash": "dd220f05c4526998c187238cd905b4e60efb7f99fe9471fe650ca06b0d03a618"
+}

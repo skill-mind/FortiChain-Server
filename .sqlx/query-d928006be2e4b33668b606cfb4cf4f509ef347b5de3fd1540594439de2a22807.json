@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT status::text as status, reason::text as reason, validator_notes, validated_by \n        FROM research_report \n        WHERE id = $1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "reason",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "validator_notes",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "validated_by",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      true,
+      true
+    ]
+  },
+  "hash": "d928006be2e4b33668b606cfb4cf4f509ef347b5de3fd1540594439de2a22807"
+}

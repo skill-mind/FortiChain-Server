@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO escrow_users (wallet_address) VALUES ($1) ON CONFLICT (wallet_address) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b6c9a65110b90a4b0caf2a29e4adbc45a014a58e205e7e63b424bb4da4adb470"
+}

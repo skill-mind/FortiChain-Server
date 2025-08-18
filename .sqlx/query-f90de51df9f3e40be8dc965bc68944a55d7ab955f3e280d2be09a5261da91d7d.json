@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE escrow_users\n        SET balance = balance + $1\n        WHERE wallet_address = $2\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Numeric",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f90de51df9f3e40be8dc965bc68944a55d7ab955f3e280d2be09a5261da91d7d"
+}
