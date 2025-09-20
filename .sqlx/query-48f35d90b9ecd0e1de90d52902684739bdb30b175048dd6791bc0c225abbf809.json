@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO escrow_users (wallet_address, balance)\n        VALUES ($1, $2)\n        ON CONFLICT (wallet_address) DO UPDATE\n        SET balance = EXCLUDED.balance\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Numeric"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "48f35d90b9ecd0e1de90d52902684739bdb30b175048dd6791bc0c225abbf809"
+}

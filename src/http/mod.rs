@@ -16,6 +16,7 @@ mod escrow;
 mod health_check;
 pub mod newsletter;
 mod project;
+mod report;
 mod support_ticket;
 mod transaction;
 mod types;
@@ -55,6 +56,7 @@ pub fn api_router(app_state: AppState) -> Router {
         .merge(escrow::router())
         .merge(newsletter::router())
         .merge(validator::router())
+        .merge(report::router())
         .layer(trace_layer)
         .layer(request_id_layer)
         .layer(propagate_request_id_layer)
